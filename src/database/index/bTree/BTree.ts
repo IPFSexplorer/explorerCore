@@ -1,6 +1,6 @@
 import LocalBTreeChildren from "./LocalBTreeChildren";
 import { Children } from "./Children";
-import Index from '..';
+import Index from "..";
 
 export interface Node<K, V> {
     isLeaf?: boolean;

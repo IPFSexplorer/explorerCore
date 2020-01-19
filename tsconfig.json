@@ -11,14 +11,6 @@
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "baseUrl": ".",
-        "plugins": [{
-            "transform": "typescript-plugin-styled-components",
-            "type": "config",
-
-            // other typescript-plugin-styled-components options can be added here
-            "minify": true,
-            "ssr": true
-        }],
         "types": [
             "webpack-env",
             "jest"

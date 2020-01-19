@@ -15,7 +15,12 @@ describe("query", function() {
             Index.addIndex("block-height", t);
             Index.addIndex("block", t);
 
-            new Block().where(b => b.height == 5).all();
+            const query = new Block()
+                .is("height")
+                .gt(5)
+                .all();
+            expect(query).toHaveLength(1);
+            expect(query[0].height).toBe(block.height);
         });
     });
 });

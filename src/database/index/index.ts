@@ -1,25 +1,24 @@
-import { QueryConfig } from "../query/query";
 import iIndex from "./iIndex";
+import Condition from "../query/condition";
 
 export default abstract class Index implements iIndex {
-    private query: QueryConfig;
-    static indexes: { string: Index };
+    static indexes: { [key: string]: Index } = {};
 
     static getIndex(name: string): Index {
-        return new this.indexes[name](); // TODO check if index exists
+        return this.indexes[name]; // TODO check if index exists
     }
 
     static addIndex(indexName: string, index: Index): void {
         this.indexes[indexName] = index;
     }
 
-    setQuery(queryConfig: QueryConfig): Index {
-        this.query = queryConfig;
-        return this;
+    static exists(indexName: string) {
+        return this.indexes[indexName] !== undefined;
     }
 
-    all(): any[] {
-        return [this.find(this.query)];
+    get<T>(condition: Condition<T>, limit: number): any[] {
+        const res = this.find(condition.value);
+        return [res];
     }
 
     abstract find(key: any): any;
