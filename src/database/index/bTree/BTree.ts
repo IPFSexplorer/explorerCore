@@ -1,233 +1,230 @@
-import IPFSconnector from "../../Common/IPFS/IPFSConnector";
 import LocalBTreeChildren from "./LocalBTreeChildren";
+import { Children } from "./Children";
 
 export interface Node<K, V> {
-  isLeaf?: boolean;
-  parent?: Node<K, V>;
-  children: Children<K, V>;
+    isLeaf?: boolean;
+    parent?: Node<K, V>;
+    children: Children<K, V>;
 }
 
 export interface Child<K, V> {
-  key: K;
-  value?: V;
-  node?: Node<K, V>;
-}
-
-export interface Children<K, V> {
-  items: Object[];
-  length: number;
-  get(i: number): Child<K, V>;
-  [Symbol.iterator](): V;
+    key: K;
+    value?: V;
+    node?: Node<K, V>;
 }
 
 const childrenClass = LocalBTreeChildren;
 
 export class BPlusTree<K, V> {
-  root: Node<K, V>;
-  branching: number;
-  comparator: (a: K, b: K) => number;
+    root: Node<K, V>;
+    branching: number;
+    comparator: (a: K, b: K) => number;
 
-  public constructor(
-    branching: number = 32,
-    comparator?: (a: K, b: K) => number
-  ) {
-    this.branching = branching;
-    this.comparator = comparator;
-    this.root = { isLeaf: true, children: new childrenClass() };
-  }
-
-  public find(key: K): V {
-    let leaf = this.findLeaf(key, this.root);
-    let { index, found } = this.getChildIndex(key, leaf);
-
-    if (found) {
-      return leaf.children.get(index).value;
-    } else {
-      return null;
-    }
-  }
-
-  public add(key: K, value: V) {
-    let leaf = this.findLeaf(key, this.root);
-    let { index, found } = this.getChildIndex(key, leaf);
-
-    if (found) {
-      // Add on an existing key updates the value
-      leaf.children.get(index).value = value;
-      return;
+    public constructor(
+        branching: number = 32,
+        comparator?: (a: K, b: K) => number
+    ) {
+        this.branching = branching;
+        this.comparator = comparator;
+        this.root = { isLeaf: true, children: new childrenClass<K, V>() };
     }
 
-    leaf.children.splice(index, 0, { key, value });
+    public find(key: K): V {
+        let leaf = this.findLeaf(key, this.root);
+        let { index, found } = this.getChildIndex(key, leaf);
 
-    if (leaf.children.length > this.branching - 1) {
-      this.split(leaf);
-    }
-  }
-
-  private split(node: Node<K, V>) {
-    let midIndex = Math.floor(
-      (node.children.length - (node.isLeaf ? 0 : 1)) / 2
-    );
-    let midKey = node.children[midIndex].key;
-
-    let newNode: Node<K, V> = {
-      isLeaf: node.isLeaf,
-      parent: node.parent,
-      children: node.children.slice(midIndex)
-    };
-
-    node.children = node.children.slice(0, midIndex);
-
-    if (!node.isLeaf) {
-      let middleNode = newNode.children.shift().node;
-      node.children.push({ key: null, node: middleNode });
-
-      for (let child of newNode.children) {
-        child.node.parent = newNode;
-      }
+        if (found) {
+            return leaf.children.get(index).value;
+        } else {
+            return null;
+        }
     }
 
-    let parent = node.parent;
-    if (parent) {
-      let { index } = this.getChildIndex(midKey, parent);
+    public add(key: K, value: V) {
+        let leaf = this.findLeaf(key, this.root);
+        let { index, found } = this.getChildIndex(key, leaf);
 
-      parent.children.splice(index, 0, { key: midKey, node: node });
-      parent.children[index + 1].node = newNode;
+        if (found) {
+            // Add on an existing key updates the value
+            leaf.children.get(index).value = value;
+            return;
+        }
 
-      if (parent.children.length > this.branching) {
-        this.split(parent);
-      }
-    } else {
-      this.root = {
-        children: [
-          { key: midKey, node: node },
-          { key: null, node: newNode }
-        ]
-      };
+        leaf.children.splice(index, 0, { key, value });
 
-      node.parent = newNode.parent = this.root;
-    }
-  }
-
-  private findLeaf(key: K, node: Node<K, V>): Node<K, V> {
-    if (node.isLeaf) {
-      return node;
-    } else {
-      let { index, found } = this.getChildIndex(key, node);
-
-      let child = node.children[index + (found ? 1 : 0)];
-      return this.findLeaf(key, child.node);
-    }
-  }
-
-  // Returns the index of the child key that is greater than or equal to the given key
-  private getChildIndex(
-    key: K,
-    node: Node<K, V>
-  ): { index: number; found: boolean } {
-    if (node.children.length == 0) {
-      return { index: 0, found: false };
+        if (leaf.children.length > this.branching - 1) {
+            this.split(leaf);
+        }
     }
 
-    let end = node.children.length - 1;
-    if (!node.isLeaf) {
-      end--;
+    private split(node: Node<K, V>) {
+        let midIndex = Math.floor(
+            (node.children.length - (node.isLeaf ? 0 : 1)) / 2
+        );
+        let midKey = node.children[midIndex].key;
+
+        let newNode: Node<K, V> = {
+            isLeaf: node.isLeaf,
+            parent: node.parent,
+            children: node.children.slice(midIndex)
+        };
+
+        node.children = node.children.slice(0, midIndex);
+
+        if (!node.isLeaf) {
+            let middleNode = newNode.children.shift().node;
+            node.children.push({ key: null, node: middleNode });
+
+            for (let child of newNode.children) {
+                child.node.parent = newNode;
+            }
+        }
+
+        let parent = node.parent;
+        if (parent) {
+            let { index } = this.getChildIndex(midKey, parent);
+
+            parent.children.splice(index, 0, { key: midKey, node: node });
+            parent.children[index + 1].node = newNode;
+
+            if (parent.children.length > this.branching) {
+                this.split(parent);
+            }
+        } else {
+            this.root = {
+                children: new childrenClass<K, V>([
+                    { key: midKey, node: node },
+                    { key: null, node: newNode }
+                ])
+            };
+
+            node.parent = newNode.parent = this.root;
+        }
     }
 
-    let index = this.getChildIndexBinary(key, node.children, 0, end);
-    let comparison = this.compareKey(key, node.children[index].key);
-    if (comparison == 0) {
-      return { index: index, found: true };
-    } else if (comparison < 0) {
-      return { index: index, found: false };
-    } else {
-      return { index: index + 1, found: false };
-    }
-  }
+    private findLeaf(key: K, node: Node<K, V>): Node<K, V> {
+        if (node.isLeaf) {
+            return node;
+        } else {
+            let { index, found } = this.getChildIndex(key, node);
 
-  private getChildIndexBinary(
-    key: K,
-    children: Child<K, V>[],
-    start: number,
-    end: number
-  ): number {
-    if (start == end) {
-      return start;
+            let child = node.children[index + (found ? 1 : 0)];
+            return this.findLeaf(key, child.node);
+        }
     }
 
-    let mid = Math.floor((start + end) / 2);
-    let comparison = this.compareKey(key, children[mid].key);
-    if (comparison == 0) {
-      return mid;
-    } else if (comparison < 0) {
-      return this.getChildIndexBinary(
-        key,
-        children,
-        start,
-        Math.max(start, mid - 1)
-      );
-    } else {
-      return this.getChildIndexBinary(
-        key,
-        children,
-        Math.min(end, mid + 1),
-        end
-      );
-    }
-  }
+    // Returns the index of the child key that is greater than or equal to the given key
+    private getChildIndex(
+        key: K,
+        node: Node<K, V>
+    ): { index: number; found: boolean } {
+        if (node.children.length == 0) {
+            return { index: 0, found: false };
+        }
 
-  private compareKey(a: K, b: K): number {
-    if (this.comparator) {
-      return this.comparator(a, b);
-    } else {
-      if (a < b) {
-        return -1;
-      } else if (a > b) {
-        return 1;
-      } else {
-        return 0;
-      }
-    }
-  }
+        let end = node.children.length - 1;
+        if (!node.isLeaf) {
+            end--;
+        }
 
-  public print(): string {
-    return this.printNode(
-      { key: null, node: this.root },
-      "",
-      true,
-      false,
-      true
-    );
-  }
-
-  private printNode(
-    nodeItem: Child<K, V>,
-    prefix: string,
-    isLast: boolean,
-    isLeaf: boolean,
-    isRoot: boolean
-  ): string {
-    let result: string = "";
-
-    if (!isRoot) {
-      let valueString = isLeaf ? ` [${nodeItem.value}]` : "";
-      result = prefix + (isLast ? "└── " : "├── ") + nodeItem.key + valueString;
+        let index = this.getChildIndexBinary(key, node.children, 0, end);
+        let comparison = this.compareKey(key, node.children.get(index).key);
+        if (comparison == 0) {
+            return { index: index, found: true };
+        } else if (comparison < 0) {
+            return { index: index, found: false };
+        } else {
+            return { index: index + 1, found: false };
+        }
     }
-    if (!isLeaf) {
-      let node = nodeItem.node;
-      for (let i = 0; i < node.children.length; i++) {
-        let isLastChild = i == node.children.length - 1;
-        result +=
-          "\n" +
-          this.printNode(
-            node.children[i],
-            prefix + (isLast ? "    " : "│   "),
-            isLastChild,
-            node.isLeaf,
-            false
-          );
-      }
+
+    private getChildIndexBinary(
+        key: K,
+        children: Children<K, V>,
+        start: number,
+        end: number
+    ): number {
+        if (start == end) {
+            return start;
+        }
+
+        let mid = Math.floor((start + end) / 2);
+        let comparison = this.compareKey(key, children.get(mid).key);
+        if (comparison == 0) {
+            return mid;
+        } else if (comparison < 0) {
+            return this.getChildIndexBinary(
+                key,
+                children,
+                start,
+                Math.max(start, mid - 1)
+            );
+        } else {
+            return this.getChildIndexBinary(
+                key,
+                children,
+                Math.min(end, mid + 1),
+                end
+            );
+        }
     }
-    return result;
-  }
+
+    private compareKey(a: K, b: K): number {
+        if (this.comparator) {
+            return this.comparator(a, b);
+        } else {
+            if (a < b) {
+                return -1;
+            } else if (a > b) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
+    }
+
+    public print(): string {
+        return this.printNode(
+            { key: null, node: this.root },
+            "",
+            true,
+            false,
+            true
+        );
+    }
+
+    private printNode(
+        nodeItem: Child<K, V>,
+        prefix: string,
+        isLast: boolean,
+        isLeaf: boolean,
+        isRoot: boolean
+    ): string {
+        let result: string = "";
+
+        if (!isRoot) {
+            let valueString = isLeaf ? ` [${nodeItem.value}]` : "";
+            result =
+                prefix +
+                (isLast ? "└── " : "├── ") +
+                nodeItem.key +
+                valueString;
+        }
+        if (!isLeaf) {
+            let node = nodeItem.node;
+            for (let i = 0; i < node.children.length; i++) {
+                let isLastChild = i == node.children.length - 1;
+                result +=
+                    "\n" +
+                    this.printNode(
+                        node.children[i],
+                        prefix + (isLast ? "    " : "│   "),
+                        isLastChild,
+                        node.isLeaf,
+                        false
+                    );
+            }
+        }
+        return result;
+    }
 }

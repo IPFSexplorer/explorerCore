@@ -1,13 +1,37 @@
 import winston from "winston";
 import { config } from "dotenv";
+import { createLogger, format, transports } from "winston";
+import { consoleFormat } from "winston-console-format";
 config();
 
 const options: winston.LoggerOptions = {
+    level: "silly",
+    format: format.combine(
+        format.timestamp(),
+        format.ms(),
+        format.errors({ stack: true }),
+        format.splat(),
+        format.json()
+    ),
+    defaultMeta: { service: "Test" },
     transports: [
-        new winston.transports.Console({
-            level: process.env.NODE_ENV === "production" ? "error" : "debug"
-        }),
-        new winston.transports.File({ filename: "debug.log", level: "debug" })
+        new transports.Console({
+            format: format.combine(
+                format.colorize({ all: true }),
+                format.padLevels(),
+                consoleFormat({
+                    showMeta: true,
+                    metaStrip: ["timestamp", "service"],
+                    inspectOptions: {
+                        depth: Infinity,
+                        colors: true,
+                        maxArrayLength: Infinity,
+                        breakLength: 120,
+                        compact: Infinity
+                    }
+                })
+            )
+        })
     ]
 };
 

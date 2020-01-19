@@ -1,0 +1,5 @@
+class Condition {
+    constructor(parameters) {
+
+    }
+}

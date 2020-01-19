@@ -1,7 +1,6 @@
-
 import { CID } from "typestub-ipfs";
-import IndexBase from '../IndexBase';
-import DAG from '@/ipfs/DAG';
+import IndexBase from "../IndexBase";
+import DAG from "@/ipfs/DAG";
 
 export default class HashtableIndex extends IndexBase {
     public hashtable = {};

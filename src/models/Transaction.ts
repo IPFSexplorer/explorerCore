@@ -1,7 +1,7 @@
 import logger from "../logger";
 
 export class Transaction {
-  constructor() {
-    logger.info("transaction");
-  }
+    constructor() {
+        logger.info("transaction");
+    }
 }

@@ -1,5 +1,5 @@
 import { CID } from "typestub-ipfs";
-import IPFSconnector from '@/ipfs/IPFSConnector';
+import IPFSconnector from "@/ipfs/IPFSConnector";
 
 export default abstract class IndexBase {
     protected name: string;
@@ -18,7 +18,10 @@ export default abstract class IndexBase {
         let key = keys.find(key => key.name === name);
         if (key) return key;
 
-        return await ipfsNode.node.key.gen(this.name, { type: "rsa", size: 2048 });
+        return await ipfsNode.node.key.gen(this.name, {
+            type: "rsa",
+            size: 2048
+        });
     }
 
     public async Publish(root: CID): Promise<Boolean> {

@@ -1,6 +1,6 @@
 import IndexBase from "../IndexBase";
 import { CID } from "typestub-ipfs";
-import DAG from '@/ipfs/DAG';
+import DAG from "@/ipfs/DAG";
 
 const KEY_LENGTH = 4;
 
