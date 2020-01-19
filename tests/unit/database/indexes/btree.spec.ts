@@ -1,10 +1,8 @@
-import IPFSconnector from "@/ipfs/IPFSConnector";
 import logger from "@/logger";
 import { BPlusTree } from "@/database/index/bTree/BTree";
-
 logger.silent = true;
 
-describe("btree", function () {
+describe("btree", function() {
     describe("insert", () => {
         it("should create and insert elements to B+tree", () => {
             const t = new BPlusTree<string, number>();

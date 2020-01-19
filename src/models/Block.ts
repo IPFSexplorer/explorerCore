@@ -1,7 +1,9 @@
-import logger from "../logger";
+import Queriable from "@/database/query/query";
 
-export class Block {
+export class Block extends Queriable<Block> {
+    height: number;
+
     constructor() {
-        logger.info("block");
+        super("block");
     }
 }

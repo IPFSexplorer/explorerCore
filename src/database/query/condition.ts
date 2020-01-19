@@ -1,5 +1,0 @@
-class Condition {
-    constructor(parameters) {
-
-    }
-}

@@ -15,12 +15,15 @@ export default class LocalBTreeChildren<K, V> implements Children<K, V> {
     slice(start?: number, end?: number): Children<K, V> {
         return new LocalBTreeChildren(this.items.slice(start, end));
     }
+
     shift() {
         return this.items.shift();
     }
+
     push(...items: Child<K, V>[]) {
         return this.items.push(...items);
     }
+
     [Symbol.iterator](): Iterator<Child<K, V>> {
         let i = 0;
         return {

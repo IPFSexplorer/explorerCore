@@ -1,5 +1,6 @@
 import LocalBTreeChildren from "./LocalBTreeChildren";
 import { Children } from "./Children";
+import Index from '..';
 
 export interface Node<K, V> {
     isLeaf?: boolean;
@@ -15,7 +16,7 @@ export interface Child<K, V> {
 
 const childrenClass = LocalBTreeChildren;
 
-export class BPlusTree<K, V> {
+export class BPlusTree<K, V> extends Index {
     root: Node<K, V>;
     branching: number;
     comparator: (a: K, b: K) => number;
@@ -24,6 +25,7 @@ export class BPlusTree<K, V> {
         branching: number = 32,
         comparator?: (a: K, b: K) => number
     ) {
+        super();
         this.branching = branching;
         this.comparator = comparator;
         this.root = { isLeaf: true, children: new childrenClass<K, V>() };
