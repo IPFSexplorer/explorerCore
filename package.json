@@ -14,6 +14,8 @@
         "core-js": "^3.4.4",
         "ipld-dag-cbor": "^0.15.1",
         "libp2p": "^0.26.2",
+        "reflect-metadata": "^0.1.13",
+        "tsyringe": "^4.0.1",
         "typescript-plugin-lodash": "^0.1.0",
         "vue": "^2.6.10",
         "vue-class-component": "^7.0.2",

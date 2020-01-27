@@ -1,5 +1,4 @@
 import iIndex from "./iIndex";
-import Condition from "../query/condition";
 
 export default abstract class Index implements iIndex {
     static indexes: { [key: string]: Index } = {};
@@ -14,11 +13,6 @@ export default abstract class Index implements iIndex {
 
     static exists(indexName: string) {
         return this.indexes[indexName] !== undefined;
-    }
-
-    get<T>(condition: Condition<T>, limit: number): any[] {
-        const res = this.find(condition.value);
-        return [res];
     }
 
     abstract find(key: any): any;

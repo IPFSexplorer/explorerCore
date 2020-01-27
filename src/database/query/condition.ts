@@ -1,15 +1,13 @@
 import Queriable from "./query";
+import ICondition from "./conditions/ICondition";
+import ConditionGt from "./conditions/gt";
+import ConditionLt from "./conditions/ls";
+import Index from "../index";
 
-enum ConditionType {
-    GT,
-    LT,
-    EQ
-}
-
-export default class Condition<T> {
+export default class Where<T> {
     propertyName: string;
     value: number;
-    type: ConditionType;
+    condition: ICondition<T>;
     private query: Queriable<T>;
 
     constructor(propName: string, query: Queriable<T>) {
@@ -17,8 +15,35 @@ export default class Condition<T> {
         this.query = query;
     }
 
+    getResults(index: Index) {
+        return {
+            [Symbol.iterator]: () => {
+                let item = index.find(this.value);
+                while (!this.condition.test(item))
+                    return {
+                        next: () => ({
+                            value: this.getNext(),
+                            done: false
+                        })
+                    };
+            }
+        };
+    }
+
+    private getNext() {}
+
+    satisfy(result: T): Boolean {
+        return this.condition.test(result[this.propertyName], this.value);
+    }
+
     public gt(value: number) {
-        this.type = ConditionType.GT;
+        this.condition = new ConditionGt<T>();
+        this.value = value;
+        return this.query;
+    }
+
+    public lt(value: number) {
+        this.condition = new ConditionLt<T>();
         this.value = value;
         return this.query;
     }

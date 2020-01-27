@@ -1,19 +1,21 @@
-import { Child } from "./BTree";
-import { Children } from "./Children";
+import { BTreeChildren, Child } from "./Interfaces";
 
-export default class LocalBTreeChildren<K, V> implements Children<K, V> {
-    constructor(items: Child<K, V>[] = []) {
-        this.items = items;
-    }
+export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
+    constructor() {}
 
-    items: Child<K, V>[];
+    items: Child<K, V>[] = [];
 
     splice(start: number, deleteCount: number, ...items: Child<K, V>[]) {
         return this.items.splice(start, deleteCount, ...items);
     }
 
-    slice(start?: number, end?: number): Children<K, V> {
-        return new LocalBTreeChildren(this.items.slice(start, end));
+    slice(start?: number, end?: number): BTreeChildren<K, V> {
+        const newChildren = new LocalBTreeChildren<K, V>();
+        for (const item of this.items.slice(start, end)) {
+            newChildren.push(item);
+        }
+
+        return newChildren;
     }
 
     shift() {
@@ -28,8 +30,8 @@ export default class LocalBTreeChildren<K, V> implements Children<K, V> {
         let i = 0;
         return {
             next: () => ({
-                value: this.items[i++],
-                done: i == this.items.length
+                value: this.items[i],
+                done: i++ === this.items.length
             })
         };
     }

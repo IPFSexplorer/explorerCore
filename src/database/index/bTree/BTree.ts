@@ -1,20 +1,6 @@
-import LocalBTreeChildren from "./LocalBTreeChildren";
-import { Children } from "./Children";
+import { BTreeChildren, Node, Child } from "./Interfaces";
 import Index from "..";
-
-export interface Node<K, V> {
-    isLeaf?: boolean;
-    parent?: Node<K, V>;
-    children: Children<K, V>;
-}
-
-export interface Child<K, V> {
-    key: K;
-    value?: V;
-    node?: Node<K, V>;
-}
-
-const childrenClass = LocalBTreeChildren;
+import { container } from "tsyringe";
 
 export class BPlusTree<K, V> extends Index {
     root: Node<K, V>;
@@ -28,11 +14,14 @@ export class BPlusTree<K, V> extends Index {
         super();
         this.branching = branching;
         this.comparator = comparator;
-        this.root = { isLeaf: true, children: new childrenClass<K, V>() };
+        this.root = {
+            isLeaf: true,
+            children: container.resolve("BTreeChildren")
+        };
     }
 
     public find(key: K): V {
-        let leaf = this.findLeaf(key, this.root);
+        let leaf = this._findLeaf(key, this.root);
         let { index, found } = this.getChildIndex(key, leaf);
 
         if (found) {
@@ -42,8 +31,12 @@ export class BPlusTree<K, V> extends Index {
         }
     }
 
+    public findLeaf(key: K): Node<K, V> {
+        return this._findLeaf(key, this.root);
+    }
+
     public add(key: K, value: V) {
-        let leaf = this.findLeaf(key, this.root);
+        let leaf = this._findLeaf(key, this.root);
         let { index, found } = this.getChildIndex(key, leaf);
 
         if (found) {
@@ -63,13 +56,21 @@ export class BPlusTree<K, V> extends Index {
         let midIndex = Math.floor(
             (node.children.length - (node.isLeaf ? 0 : 1)) / 2
         );
-        let midKey = node.children[midIndex].key;
+        let midKey = node.children.get(midIndex).key;
 
         let newNode: Node<K, V> = {
             isLeaf: node.isLeaf,
             parent: node.parent,
             children: node.children.slice(midIndex)
         };
+
+        if (newNode.isLeaf) {
+            newNode.nextNode = node.nextNode;
+            newNode.previousNode = node;
+
+            if (newNode.nextNode) newNode.nextNode.previousNode = newNode;
+            node.nextNode = newNode;
+        }
 
         node.children = node.children.slice(0, midIndex);
 
@@ -87,31 +88,36 @@ export class BPlusTree<K, V> extends Index {
             let { index } = this.getChildIndex(midKey, parent);
 
             parent.children.splice(index, 0, { key: midKey, node: node });
-            parent.children[index + 1].node = newNode;
+            parent.children.get(index + 1).node = newNode;
 
             if (parent.children.length > this.branching) {
                 this.split(parent);
             }
         } else {
+            const newChildrenClass: BTreeChildren<K, V> = container.resolve(
+                "BTreeChildren"
+            );
+            newChildrenClass.push(
+                { key: midKey, node: node },
+                { key: null, node: newNode }
+            );
+
             this.root = {
-                children: new childrenClass<K, V>([
-                    { key: midKey, node: node },
-                    { key: null, node: newNode }
-                ])
+                children: newChildrenClass
             };
 
             node.parent = newNode.parent = this.root;
         }
     }
 
-    private findLeaf(key: K, node: Node<K, V>): Node<K, V> {
+    public _findLeaf(key: K, node: Node<K, V>): Node<K, V> {
         if (node.isLeaf) {
             return node;
         } else {
             let { index, found } = this.getChildIndex(key, node);
 
-            let child = node.children[index + (found ? 1 : 0)];
-            return this.findLeaf(key, child.node);
+            let child = node.children.get(index + (found ? 1 : 0));
+            return this._findLeaf(key, child.node);
         }
     }
 
@@ -142,7 +148,7 @@ export class BPlusTree<K, V> extends Index {
 
     private getChildIndexBinary(
         key: K,
-        children: Children<K, V>,
+        children: BTreeChildren<K, V>,
         start: number,
         end: number
     ): number {
@@ -219,7 +225,7 @@ export class BPlusTree<K, V> extends Index {
                 result +=
                     "\n" +
                     this.printNode(
-                        node.children[i],
+                        node.children.get(i),
                         prefix + (isLast ? "    " : "│   "),
                         isLastChild,
                         node.isLeaf,

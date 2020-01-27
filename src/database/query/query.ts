@@ -1,9 +1,9 @@
 import Index from "../index/index";
-import Condition from "./condition";
+import Where from "./condition";
 
 export default class Queriable<T> {
     private entityName: string;
-    private conditions: Condition<T>[] = [];
+    private conditions: Where<T>[] = [];
     private limitResult: number = -1;
 
     private selectFunction: (e: T) => Object;
@@ -12,8 +12,8 @@ export default class Queriable<T> {
         this.entityName = entityName;
     }
 
-    public is(propName: string) {
-        const cond = new Condition<T>(propName, this);
+    public where(propName: string) {
+        const cond = new Where<T>(propName, this);
         this.conditions.push(cond);
         return cond;
     }
@@ -38,36 +38,46 @@ export default class Queriable<T> {
     }
 
     protected resolve(): T[] {
-        const { index, condition } = this.chooseIndex();
-        return index.get<T>(condition, this.limitResult);
+        const { index, conditionIdx } = this.chooseIndex();
+
+        let indexCondition: Where<T>;
+        if (conditionIdx >= 0) {
+            indexCondition = this.conditions.splice(conditionIdx, 1)[0];
+        } else {
+            indexCondition = new Where<T>("", this);
+            indexCondition.gt(-Infinity);
+        }
+
+        for (const result of indexCondition.getResults(index)) {
+            this.test(result);
+        }
     }
 
-    private chooseIndex(): { index: Index; condition: Condition<T> } {
-        // get first match index
+    private test(result: T) {
         for (const condition of this.conditions) {
-            const indexName = this.entityName + "-" + condition.propertyName;
+            if (!condition.satisfy(result)) return false;
+        }
+        return true;
+    }
+
+    private chooseIndex(): { index: Index; conditionIdx: number } {
+        // get first match index
+        for (let index = 0; index < this.conditions.length; index++) {
+            const indexName =
+                this.entityName + "-" + this.conditions[index].propertyName;
             if (Index.exists(indexName)) {
                 return {
                     index: Index.getIndex(indexName),
-                    condition: condition
+                    conditionIdx: index
                 };
             }
         }
 
         // can not find any usefull index. Use default
-        if (this.conditions.length > 0) {
-            return {
-                index: Index.getIndex(this.entityName),
-                condition: this.conditions[0]
-            };
-        } else {
-            const alwaysTrueCondition = new Condition<T>("", this);
-            alwaysTrueCondition.gt(-Infinity);
-            return {
-                index: Index.getIndex(this.entityName),
-                condition: alwaysTrueCondition
-            };
-        }
+        return {
+            index: Index.getIndex(this.entityName),
+            conditionIdx: -1
+        };
     }
 
     // [Symbol.iterator](): Iterator<T> {}

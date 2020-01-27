@@ -16,7 +16,7 @@ describe("query", function() {
             Index.addIndex("block", t);
 
             const query = new Block()
-                .is("height")
+                .where("height")
                 .gt(5)
                 .all();
             expect(query).toHaveLength(1);
