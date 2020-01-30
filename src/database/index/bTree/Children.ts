@@ -1,4 +1,4 @@
-import { Child } from "./BTree";
+import { Child } from "./Interfaces";
 
 export interface Children<K, V> {
     splice(start: number, deleteCount?: number);

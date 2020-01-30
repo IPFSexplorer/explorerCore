@@ -1,8 +1,8 @@
 import { BTreeChildren, Node, Child } from "./Interfaces";
-import Index from "..";
+import IndexStore from "../../DAL/indexes/indexStore";
 import { container } from "tsyringe";
 
-export class BPlusTree<K, V> extends Index {
+export class BPlusTree<K, V> extends IndexStore {
     root: Node<K, V>;
     branching: number;
     comparator: (a: K, b: K) => number;
@@ -121,8 +121,36 @@ export class BPlusTree<K, V> extends Index {
         }
     }
 
+    public traverseRight(from: K) {
+        return {
+            [Symbol.iterator]: () => {
+                let leaf = this._findLeaf(from, this.root);
+                let { index, found } = this.getChildIndex(from, leaf);
+                return {
+                    next: () => {
+                        const result = {
+                            value: leaf.children.get(index).value,
+                            done: false
+                        };
+
+                        if (index + 1 >= leaf.children.length) {
+                            if (!leaf.nextNode) {
+                                result.done = true;
+                            }
+                            leaf = leaf.nextNode;
+                            index = 0;
+                        } else {
+                            index++;
+                        }
+                        return result;
+                    }
+                };
+            }
+        };
+    }
+
     // Returns the index of the child key that is greater than or equal to the given key
-    private getChildIndex(
+    public getChildIndex(
         key: K,
         node: Node<K, V>
     ): { index: number; found: boolean } {

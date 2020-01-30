@@ -1,26 +1,35 @@
+import "reflect-metadata";
 import logger from "@/logger";
 import { Block } from "@/models/Block";
-import Queriable from "@/database/query/query";
 import { BPlusTree } from "@/database/index/bTree/BTree";
-import Index from "@/database/index";
-logger.silent = true;
+import IndexStore from "@/database/DAL/indexes/indexStore";
+import { container } from "tsyringe";
+import LocalBTreeChildren from "@/database/index/bTree/LocalBTreeChildren";
 
 describe("query", function() {
+    beforeAll(async () => {
+        logger.silent = false;
+        container.register("BTreeChildren", {
+            useClass: LocalBTreeChildren
+        });
+    });
+
     describe("where", () => {
         it("should find something", () => {
-            const block = new Block();
-            block.height = 5;
             const t = new BPlusTree<number, Block>();
-            t.add(block.height, block);
-            Index.addIndex("block-height", t);
-            Index.addIndex("block", t);
+            for (let h = 0; h < 1000; h++) {
+                const block = new Block();
+                block.height = h;
+                t.add(block.height, block);
+            }
 
-            const query = new Block()
+            IndexStore.addIndex("block", "height", t);
+
+            const results = new Block()
                 .where("height")
                 .gt(5)
                 .all();
-            expect(query).toHaveLength(1);
-            expect(query[0].height).toBe(block.height);
+            logger.info(results);
         });
     });
 });
