@@ -28,6 +28,8 @@ describe("query", function() {
             const results = new Block()
                 .where("height")
                 .gt(5)
+                .and("height")
+                .lt(10)
                 .all();
             logger.info(results);
         });

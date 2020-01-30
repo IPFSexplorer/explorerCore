@@ -1,8 +1,9 @@
 import { BTreeChildren, Node, Child } from "./Interfaces";
 import IndexStore from "../../DAL/indexes/indexStore";
 import { container } from "tsyringe";
+import store from "@/store";
 
-export class BPlusTree<K, V> extends IndexStore {
+export class BPlusTree<K, V> {
     root: Node<K, V>;
     branching: number;
     comparator: (a: K, b: K) => number;
@@ -11,7 +12,6 @@ export class BPlusTree<K, V> extends IndexStore {
         branching: number = 32,
         comparator?: (a: K, b: K) => number
     ) {
-        super();
         this.branching = branching;
         this.comparator = comparator;
         this.root = {
@@ -112,11 +112,13 @@ export class BPlusTree<K, V> extends IndexStore {
 
     public _findLeaf(key: K, node: Node<K, V>): Node<K, V> {
         if (node.isLeaf) {
+            store.dispatch("queries/addLeaf", node);
             return node;
         } else {
             let { index, found } = this.getChildIndex(key, node);
 
             let child = node.children.get(index + (found ? 1 : 0));
+            store.dispatch("queries/addNode", node);
             return this._findLeaf(key, child.node);
         }
     }
@@ -133,14 +135,50 @@ export class BPlusTree<K, V> extends IndexStore {
                             done: false
                         };
 
+                        store.dispatch("queries/addValue", result.value);
+
                         if (index + 1 >= leaf.children.length) {
                             if (!leaf.nextNode) {
                                 result.done = true;
+                                return result;
                             }
                             leaf = leaf.nextNode;
                             index = 0;
+                            store.dispatch("queries/addLeaf", leaf);
                         } else {
                             index++;
+                        }
+                        return result;
+                    }
+                };
+            }
+        };
+    }
+
+    public traverseLeft(from: K) {
+        return {
+            [Symbol.iterator]: () => {
+                let leaf = this._findLeaf(from, this.root);
+                let { index, found } = this.getChildIndex(from, leaf);
+                return {
+                    next: () => {
+                        const result = {
+                            value: leaf.children.get(index).value,
+                            done: false
+                        };
+
+                        store.dispatch("queries/addValue", result.value);
+
+                        if (index <= 0) {
+                            if (!leaf.previousNode) {
+                                result.done = true;
+                                return result;
+                            }
+                            leaf = leaf.previousNode;
+                            index = leaf.children.length;
+                            store.dispatch("queries/addLeaf", leaf);
+                        } else {
+                            index--;
                         }
                         return result;
                     }

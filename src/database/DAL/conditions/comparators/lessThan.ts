@@ -2,7 +2,7 @@ import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
 import { BPlusTree } from "@/database/index/bTree/BTree";
 
-export default class greatherThan implements IComparator {
+export default class lessThan implements IComparator {
     value: any;
     property: any;
     btree: BPlusTree<any, any>;
@@ -13,10 +13,10 @@ export default class greatherThan implements IComparator {
     }
 
     public test(val: any) {
-        return val > this.value;
+        return val < this.value;
     }
 
     public getIterator(btree: BPlusTree<any, any>) {
-        return btree.traverseRight(this.value);
+        return btree.traverseLeft(this.value);
     }
 }

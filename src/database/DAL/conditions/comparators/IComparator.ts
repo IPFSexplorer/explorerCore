@@ -5,7 +5,5 @@ export default interface IComparator {
     value: any;
     property: any;
     test(value: any): boolean;
-    getIterator(
-        btree: BPlusTree<any, any>
-    ): { [Symbol.iterator](): Iterator<Child<any, any>, any, undefined> };
+    getIterator(btree: BPlusTree<any, any>);
 }

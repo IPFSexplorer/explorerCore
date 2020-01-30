@@ -1,17 +1,36 @@
 <template>
     <div id="app">
-        <img alt="Vue logo" src="./assets/logo.png" />
-        <HelloWorld msg="Welcome to Your Vue.js + TypeScript App" />
+        <split-pane :min-percent="20" :default-percent="60" split="vertical">
+            <template slot="paneL">
+                <split-pane split="horizontal">
+                    <template slot="paneL" class="panel">
+                        <CodeEditor></CodeEditor>
+                    </template>
+                    <template slot="paneR">
+                        <QueryResult />
+                    </template>
+                </split-pane>
+            </template>
+            <template slot="paneR">
+                <QueryGraph />
+            </template>
+        </split-pane>
     </div>
 </template>
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import HelloWorld from "./components/HelloWorld.vue";
+import splitPane from "vue-splitpane";
+import CodeEditor from "@/components/CodeEditor.vue";
+import QueryGraph from "@/components/QueryGraph.vue";
+import QueryResult from "@/components/QueryResult.vue";
 
 @Component({
     components: {
-        HelloWorld
+        "split-pane": splitPane,
+        CodeEditor,
+        QueryGraph,
+        QueryResult
     }
 })
 export default class App extends Vue {}
@@ -19,11 +38,29 @@ export default class App extends Vue {}
 
 <style>
 #app {
+    height: 100vh;
     font-family: "Avenir", Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-align: center;
     color: #2c3e50;
-    margin-top: 60px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.height100 {
+    height: 100%;
+}
+
+.width100 {
+    width: 100%;
+}
+
+.panel {
+    background: white;
+    overflow: auto;
 }
 </style>

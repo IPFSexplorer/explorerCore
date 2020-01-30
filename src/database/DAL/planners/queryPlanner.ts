@@ -6,12 +6,14 @@ enum ConditionTypes {
     Or
 }
 
+type QueryPlannerCondition = {
+    condition: PropertyCondition;
+    type: ConditionTypes;
+    results: Set<any>;
+}[];
+
 export default class QueryPlanner {
-    conditions: {
-        condition: PropertyCondition;
-        type: ConditionTypes;
-        results: Set<any>;
-    }[] = [];
+    conditions: QueryPlannerCondition = [];
 
     entityName: string;
 
@@ -47,18 +49,55 @@ export default class QueryPlanner {
             }
         }
 
+        let andResults = this.intersection(
+            this.conditions.filter(cond => cond.type == ConditionTypes.And)
+        );
+        let orResults = this.union(
+            this.conditions.filter(cond => cond.type == ConditionTypes.Or)
+        );
+        return new Set([...andResults, ...orResults]);
+    }
+
+    /*
+        Make intersection of sets. Take the smallest set an compare each entry 
+    */
+    private intersection(conditions: QueryPlannerCondition) {
+        let smallestSetIdx = conditions.reduce(
+            (min, cond, idx) =>
+                cond.results.size < min.size
+                    ? {
+                        conditionIdx: idx,
+                        size: cond.results.size
+                    }
+                    : min,
+            {
+                conditionIdx: 0,
+                size: conditions[0].results.size
+            }
+        ).conditionIdx;
+
+        for (const result of conditions[smallestSetIdx].results) {
+            for (const cond of conditions) {
+                if (!cond.results.has(result)) {
+                    conditions[smallestSetIdx].results.delete(result);
+                }
+            }
+        }
+
+        return conditions[smallestSetIdx].results;
+    }
+
+    private union(conditions: QueryPlannerCondition) {
         // TODO make benchmark
         // let result = new Set;
         // for (const set of array)
         //     for (const element of set)
         //         result.add(element);
 
-        const results = new Set(
-            (function* () {
-                for (const cond of this.conditions) yield* cond.results;
-            }.bind(this))()
+        return new Set(
+            (function*() {
+                for (const cond of conditions) yield* cond.results;
+            })()
         );
-
-        return results;
     }
 }
