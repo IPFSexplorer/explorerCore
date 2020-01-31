@@ -1,47 +1,57 @@
 import logger from "@/logger";
+import { delay } from "@/common";
 
 // initial state
 const state = {
+    delayBetweenNodes: 500,
     query: null,
-    all: []
+    graphNodes: []
 };
 
 // getters
 const getters = {
+    getNodeDelay: state => {
+        return state.delayBetweenNodes;
+    },
     hasQuery: state => {
         return state.query !== null;
+    },
+    nodes: state => {
+        return state.graphNodes;
     }
 };
 
 // actions
 const actions = {
+    setDelay({ commit }, newDelay) {
+        commit("setDelay", newDelay);
+    },
     newQuery({ commit }, query) {
         commit("setNewQuery", query);
         logger.info(query);
     },
-    addNode({ commit }, node) {
-        if (!this.getters["queries/hasQuery"]) return;
-        console.log(node);
-    },
-    addValue({ commit }, value) {
-        if (!this.getters["queries/hasQuery"]) return;
-        //logger.info(value);
-    },
-    addLeaf({ commit }, leaf) {
-        if (!this.getters["queries/hasQuery"]) return;
-        //logger.info(leaf);
+    async addNode({ commit }, node) {
+        if (!this.getters.hasQuery) return;
+        await delay(this.getters);
     }
 };
 
 // mutations
 const mutations = {
+    setDelay(state, delay) {
+        state.delayBetweenNodes = delay;
+    },
     setNewQuery(state, query) {
+        state.graphNodes = [];
         state.query = query;
+    },
+    addNode(state, node) {
+        state.graphNodes.push(node);
     }
 };
 
 export default {
-    namespaced: true,
+    namespaced: false,
     state,
     getters,
     actions,

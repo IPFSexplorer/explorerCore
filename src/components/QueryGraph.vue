@@ -1,5 +1,6 @@
 <template>
     <div class="graphContainer height100 width100">
+        <div>{{ nodes }}</div>
         <cytoscape
             ref="cy"
             :config="config"
@@ -7,7 +8,7 @@
             class="graph height100 width100"
         >
             <cy-element
-                v-for="def in elements"
+                v-for="def in nodes"
                 :key="`${def.data.id}`"
                 :definition="def"
             />
@@ -28,6 +29,11 @@ export default class QueryGraph extends Vue {
     afterCreated(cy) {
         cy.resize();
     }
+
+    get nodes() {
+        return this.$store.getters.nodes;
+    }
+
     data() {
         return {
             config: {

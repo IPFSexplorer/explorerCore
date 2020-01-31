@@ -6,8 +6,8 @@ export interface BTreeChildren<K, V> {
     push(...items: Child<K, V>[]);
     items: Child<K, V>[];
     length: number;
-    get(i: number): Child<K, V>;
-    [Symbol.iterator](): Iterator<Child<K, V>>;
+    get(i: number): Promise<Child<K, V>>;
+    [Symbol.asyncIterator]();
 }
 
 export interface Node<K, V> {

@@ -31,7 +31,7 @@ export default class CodeEditor extends Vue {
     }
 
     runQuery() {
-        this.$store.dispatch("queries/newQuery", this.$data.code);
+        this.$store.dispatch("newQuery", this.$data.code);
         console.log(this.$data.code);
         console.log(this.evalWithCOntext(this.$data.code));
     }

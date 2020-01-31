@@ -1,8 +1,5 @@
 import { BTreeChildren, Node, Child } from "./Interfaces";
-import IndexStore from "../../DAL/indexes/indexStore";
 import { container } from "tsyringe";
-import store from "@/store";
-
 export class BPlusTree<K, V> {
     root: Node<K, V>;
     branching: number;
@@ -20,28 +17,28 @@ export class BPlusTree<K, V> {
         };
     }
 
-    public find(key: K): V {
-        let leaf = this._findLeaf(key, this.root);
-        let { index, found } = this.getChildIndex(key, leaf);
+    public async find(key: K): Promise<V> {
+        let leaf = await this._findLeaf(key, this.root);
+        let { index, found } = await this.getChildIndex(key, leaf);
 
         if (found) {
-            return leaf.children.get(index).value;
+            return (await leaf.children.get(index)).value;
         } else {
             return null;
         }
     }
 
-    public findLeaf(key: K): Node<K, V> {
-        return this._findLeaf(key, this.root);
+    public async findLeaf(key: K): Promise<Node<K, V>> {
+        return await this._findLeaf(key, this.root);
     }
 
-    public add(key: K, value: V) {
-        let leaf = this._findLeaf(key, this.root);
-        let { index, found } = this.getChildIndex(key, leaf);
+    public async add(key: K, value: V) {
+        let leaf = await this._findLeaf(key, this.root);
+        let { index, found } = await this.getChildIndex(key, leaf);
 
         if (found) {
             // Add on an existing key updates the value
-            leaf.children.get(index).value = value;
+            (await leaf.children.get(index)).value = value;
             return;
         }
 
@@ -52,11 +49,11 @@ export class BPlusTree<K, V> {
         }
     }
 
-    private split(node: Node<K, V>) {
+    private async split(node: Node<K, V>) {
         let midIndex = Math.floor(
             (node.children.length - (node.isLeaf ? 0 : 1)) / 2
         );
-        let midKey = node.children.get(midIndex).key;
+        let midKey = (await node.children.get(midIndex)).key;
 
         let newNode: Node<K, V> = {
             isLeaf: node.isLeaf,
@@ -78,17 +75,17 @@ export class BPlusTree<K, V> {
             let middleNode = newNode.children.shift().node;
             node.children.push({ key: null, node: middleNode });
 
-            for (let child of newNode.children) {
+            for await (let child of newNode.children) {
                 child.node.parent = newNode;
             }
         }
 
         let parent = node.parent;
         if (parent) {
-            let { index } = this.getChildIndex(midKey, parent);
+            let { index } = await this.getChildIndex(midKey, parent);
 
             parent.children.splice(index, 0, { key: midKey, node: node });
-            parent.children.get(index + 1).node = newNode;
+            (await parent.children.get(index + 1)).node = newNode;
 
             if (parent.children.length > this.branching) {
                 this.split(parent);
@@ -110,32 +107,28 @@ export class BPlusTree<K, V> {
         }
     }
 
-    public _findLeaf(key: K, node: Node<K, V>): Node<K, V> {
+    public async _findLeaf(key: K, node: Node<K, V>): Promise<Node<K, V>> {
         if (node.isLeaf) {
-            store.dispatch("queries/addLeaf", node);
             return node;
         } else {
-            let { index, found } = this.getChildIndex(key, node);
+            let { index, found } = await this.getChildIndex(key, node);
 
-            let child = node.children.get(index + (found ? 1 : 0));
-            store.dispatch("queries/addNode", node);
-            return this._findLeaf(key, child.node);
+            let child = await node.children.get(index + (found ? 1 : 0));
+            return await this._findLeaf(key, child.node);
         }
     }
 
     public traverseRight(from: K) {
         return {
-            [Symbol.iterator]: () => {
-                let leaf = this._findLeaf(from, this.root);
-                let { index, found } = this.getChildIndex(from, leaf);
+            [Symbol.iterator]: async () => {
+                let leaf = await this._findLeaf(from, this.root);
+                let { index, found } = await this.getChildIndex(from, leaf);
                 return {
-                    next: () => {
+                    next: async () => {
                         const result = {
-                            value: leaf.children.get(index).value,
+                            value: (await leaf.children.get(index)).value,
                             done: false
                         };
-
-                        store.dispatch("queries/addValue", result.value);
 
                         if (index + 1 >= leaf.children.length) {
                             if (!leaf.nextNode) {
@@ -144,7 +137,6 @@ export class BPlusTree<K, V> {
                             }
                             leaf = leaf.nextNode;
                             index = 0;
-                            store.dispatch("queries/addLeaf", leaf);
                         } else {
                             index++;
                         }
@@ -157,17 +149,15 @@ export class BPlusTree<K, V> {
 
     public traverseLeft(from: K) {
         return {
-            [Symbol.iterator]: () => {
-                let leaf = this._findLeaf(from, this.root);
-                let { index, found } = this.getChildIndex(from, leaf);
+            [Symbol.iterator]: async () => {
+                let leaf = await this._findLeaf(from, this.root);
+                let { index, found } = await this.getChildIndex(from, leaf);
                 return {
-                    next: () => {
+                    next: async () => {
                         const result = {
-                            value: leaf.children.get(index).value,
+                            value: (await leaf.children.get(index)).value,
                             done: false
                         };
-
-                        store.dispatch("queries/addValue", result.value);
 
                         if (index <= 0) {
                             if (!leaf.previousNode) {
@@ -175,8 +165,7 @@ export class BPlusTree<K, V> {
                                 return result;
                             }
                             leaf = leaf.previousNode;
-                            index = leaf.children.length;
-                            store.dispatch("queries/addLeaf", leaf);
+                            index = leaf.children.length - 1;
                         } else {
                             index--;
                         }
@@ -188,10 +177,10 @@ export class BPlusTree<K, V> {
     }
 
     // Returns the index of the child key that is greater than or equal to the given key
-    public getChildIndex(
+    public async getChildIndex(
         key: K,
         node: Node<K, V>
-    ): { index: number; found: boolean } {
+    ): Promise<{ index: number; found: boolean }> {
         if (node.children.length == 0) {
             return { index: 0, found: false };
         }
@@ -201,8 +190,11 @@ export class BPlusTree<K, V> {
             end--;
         }
 
-        let index = this.getChildIndexBinary(key, node.children, 0, end);
-        let comparison = this.compareKey(key, node.children.get(index).key);
+        let index = await this.getChildIndexBinary(key, node.children, 0, end);
+        let comparison = this.compareKey(
+            key,
+            (await node.children.get(index)).key
+        );
         if (comparison == 0) {
             return { index: index, found: true };
         } else if (comparison < 0) {
@@ -212,18 +204,18 @@ export class BPlusTree<K, V> {
         }
     }
 
-    private getChildIndexBinary(
+    private async getChildIndexBinary(
         key: K,
         children: BTreeChildren<K, V>,
         start: number,
         end: number
-    ): number {
+    ): Promise<number> {
         if (start == end) {
             return start;
         }
 
         let mid = Math.floor((start + end) / 2);
-        let comparison = this.compareKey(key, children.get(mid).key);
+        let comparison = this.compareKey(key, (await children.get(mid)).key);
         if (comparison == 0) {
             return mid;
         } else if (comparison < 0) {
@@ -257,8 +249,8 @@ export class BPlusTree<K, V> {
         }
     }
 
-    public print(): string {
-        return this.printNode(
+    public async print(): Promise<string> {
+        return await this.printNode(
             { key: null, node: this.root },
             "",
             true,
@@ -267,13 +259,13 @@ export class BPlusTree<K, V> {
         );
     }
 
-    private printNode(
+    private async printNode(
         nodeItem: Child<K, V>,
         prefix: string,
         isLast: boolean,
         isLeaf: boolean,
         isRoot: boolean
-    ): string {
+    ): Promise<string> {
         let result: string = "";
 
         if (!isRoot) {
@@ -290,13 +282,13 @@ export class BPlusTree<K, V> {
                 let isLastChild = i == node.children.length - 1;
                 result +=
                     "\n" +
-                    this.printNode(
-                        node.children.get(i),
+                    (await this.printNode(
+                        await node.children.get(i),
                         prefix + (isLast ? "    " : "│   "),
                         isLastChild,
                         node.isLeaf,
                         false
-                    );
+                    ));
             }
         }
         return result;

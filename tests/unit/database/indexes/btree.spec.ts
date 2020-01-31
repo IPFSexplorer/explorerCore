@@ -13,36 +13,36 @@ describe("btree", function() {
     });
 
     describe("insert", () => {
-        it("should create and insert elements to B+tree", () => {
+        it("should create and insert elements to B+tree", async () => {
             const t = new BPlusTree<string, number>();
-            t.add("five", 5);
-            expect(t.find("five")).toBe(5);
+            await t.add("five", 5);
+            expect(await t.find("five")).toBe(5);
         });
 
-        it("should create and insert 1000 elements to B+tree", () => {
-            const t = new BPlusTree();
-            for (let i = 0; i <= 1000; i++) {
-                t.add(i, { ffffuha: i });
-                // logger.info(t.print())
+        it("should create and insert 1000 elements to B+tree", async () => {
+            const t = new BPlusTree(4);
+            for (let i = 0; i <= 30; i++) {
+                await t.add(i, { ffffuha: i });
+                logger.info(await t.print());
             }
 
-            for (let i = 0; i <= 1000; i++) {
+            for (let i = 0; i <= 30; i++) {
                 logger.info(i.toString());
-                expect(t.find(i)).toStrictEqual({ ffffuha: i });
+                expect(await t.find(i)).toStrictEqual({ ffffuha: i });
             }
 
-            expect(t.find(1001)).toBeNull();
+            expect(await t.find(1001)).toBeNull();
         });
 
-        it("should find previous and next leaf", () => {
+        it("should find previous and next leaf", async () => {
             let branchFactor = 4;
             const t = new BPlusTree(branchFactor);
             for (let i = 0; i <= 100; i++) {
-                t.add(i, { ffffuha: i });
+                await t.add(i, { ffffuha: i });
             }
 
             for (let i = 4; i <= 96; i++) {
-                let node = t.findLeaf(i);
+                let node = await t.findLeaf(i);
                 expect(node.previousNode.nextNode).toStrictEqual(node);
                 expect(node.nextNode.previousNode).toStrictEqual(node);
             }

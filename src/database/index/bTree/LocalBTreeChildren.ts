@@ -1,7 +1,8 @@
 import { BTreeChildren, Child } from "./Interfaces";
+import store from "@/store";
 
 export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
-    constructor() {}
+    constructor() { }
 
     items: Child<K, V>[] = [];
 
@@ -26,11 +27,11 @@ export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
         return this.items.push(...items);
     }
 
-    [Symbol.iterator](): Iterator<Child<K, V>> {
+    [Symbol.asyncIterator](): AsyncIterator<Child<K, V>> {
         let i = 0;
         return {
-            next: () => ({
-                value: this.items[i],
+            next: async () => ({
+                value: await this.get(i),
                 done: i++ === this.items.length
             })
         };
@@ -40,7 +41,8 @@ export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
         return this.items.length;
     }
 
-    get(i: number): Child<K, V> {
+    async get(i: number): Promise<Child<K, V>> {
+        await store.dispatch("addNode", this.items[i]);
         return this.items[i];
     }
 }
