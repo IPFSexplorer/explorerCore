@@ -16,7 +16,7 @@ export default class lessThan implements IComparator {
         return val < this.value;
     }
 
-    public getIterator(btree: BPlusTree<any, any>) {
-        return btree.traverseLeft(this.value);
+    public async getIterator(btree: BPlusTree<any, any>) {
+        return await btree.traverseLeft(this.value);
     }
 }

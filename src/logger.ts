@@ -6,13 +6,7 @@ config();
 
 const options: winston.LoggerOptions = {
     level: "silly",
-    format: format.combine(
-        format.timestamp(),
-        format.ms(),
-        format.errors({ stack: true }),
-        format.splat(),
-        format.json()
-    ),
+    format: format.combine(format.timestamp(), format.splat(), format.json()),
     defaultMeta: { service: "Test" },
     transports: [
         new transports.Console({

@@ -2,7 +2,7 @@ import { BTreeChildren, Child } from "./Interfaces";
 import store from "@/store";
 
 export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
-    constructor() { }
+    constructor() {}
 
     items: Child<K, V>[] = [];
 
@@ -42,7 +42,6 @@ export default class LocalBTreeChildren<K, V> implements BTreeChildren<K, V> {
     }
 
     async get(i: number): Promise<Child<K, V>> {
-        await store.dispatch("addNode", this.items[i]);
         return this.items[i];
     }
 }

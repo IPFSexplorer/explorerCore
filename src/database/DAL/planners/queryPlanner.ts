@@ -37,14 +37,16 @@ export default class QueryPlanner {
         });
     }
 
-    public execute() {
+    public async execute() {
         for (const cond of this.conditions) {
             const btree = IndexStore.getIndex(
                 this.entityName,
                 cond.condition.property
             );
 
-            for (const result of cond.condition.comparator.getIterator(btree)) {
+            for await (const result of await cond.condition.comparator.getIterator(
+                btree
+            )) {
                 cond.results.add(result);
             }
         }

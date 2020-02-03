@@ -16,7 +16,7 @@ export default class greatherThan implements IComparator {
         return val > this.value;
     }
 
-    public getIterator(btree: BPlusTree<any, any>) {
-        return btree.traverseRight(this.value);
+    public async getIterator(btree: BPlusTree<any, any>) {
+        return await btree.traverseRight(this.value);
     }
 }

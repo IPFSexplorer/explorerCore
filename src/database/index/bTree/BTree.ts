@@ -1,5 +1,6 @@
 import { BTreeChildren, Node, Child } from "./Interfaces";
 import { container } from "tsyringe";
+import store from "@/store";
 export class BPlusTree<K, V> {
     root: Node<K, V>;
     branching: number;
@@ -45,7 +46,7 @@ export class BPlusTree<K, V> {
         leaf.children.splice(index, 0, { key, value });
 
         if (leaf.children.length > this.branching - 1) {
-            this.split(leaf);
+            await this.split(leaf);
         }
     }
 
@@ -88,7 +89,7 @@ export class BPlusTree<K, V> {
             (await parent.children.get(index + 1)).node = newNode;
 
             if (parent.children.length > this.branching) {
-                this.split(parent);
+                await this.split(parent);
             }
         } else {
             const newChildrenClass: BTreeChildren<K, V> = container.resolve(
@@ -104,6 +105,7 @@ export class BPlusTree<K, V> {
             };
 
             node.parent = newNode.parent = this.root;
+            this.root.parent = null;
         }
     }
 
@@ -114,15 +116,20 @@ export class BPlusTree<K, V> {
             let { index, found } = await this.getChildIndex(key, node);
 
             let child = await node.children.get(index + (found ? 1 : 0));
+            await store.dispatch("addNode", child);
             return await this._findLeaf(key, child.node);
         }
     }
 
-    public traverseRight(from: K) {
+    public async traverseRight(from: K) {
+        await store.dispatch("addNode", {
+            key: "root",
+            node: this.root
+        });
+        let leaf = await this._findLeaf(from, this.root);
+        let { index, found } = await this.getChildIndex(from, leaf);
         return {
-            [Symbol.iterator]: async () => {
-                let leaf = await this._findLeaf(from, this.root);
-                let { index, found } = await this.getChildIndex(from, leaf);
+            [Symbol.asyncIterator]: () => {
                 return {
                     next: async () => {
                         const result = {
@@ -137,6 +144,12 @@ export class BPlusTree<K, V> {
                             }
                             leaf = leaf.nextNode;
                             index = 0;
+                            await store.dispatch(
+                                "addNode",
+                                leaf.parent.children.items.find(
+                                    ch => ch.node === leaf
+                                )
+                            );
                         } else {
                             index++;
                         }
@@ -147,11 +160,15 @@ export class BPlusTree<K, V> {
         };
     }
 
-    public traverseLeft(from: K) {
+    public async traverseLeft(from: K) {
+        await store.dispatch("addNode", {
+            key: "root",
+            node: this.root
+        });
+        let leaf = await this._findLeaf(from, this.root);
+        let { index, found } = await this.getChildIndex(from, leaf);
         return {
-            [Symbol.iterator]: async () => {
-                let leaf = await this._findLeaf(from, this.root);
-                let { index, found } = await this.getChildIndex(from, leaf);
+            [Symbol.asyncIterator]: () => {
                 return {
                     next: async () => {
                         const result = {
@@ -166,6 +183,12 @@ export class BPlusTree<K, V> {
                             }
                             leaf = leaf.previousNode;
                             index = leaf.children.length - 1;
+                            await store.dispatch(
+                                "addNode",
+                                leaf.parent.children.items.find(
+                                    ch => ch.node === leaf
+                                )
+                            );
                         } else {
                             index--;
                         }
@@ -239,12 +262,17 @@ export class BPlusTree<K, V> {
         if (this.comparator) {
             return this.comparator(a, b);
         } else {
-            if (a < b) {
-                return -1;
-            } else if (a > b) {
-                return 1;
-            } else {
-                return 0;
+            if (typeof a === "number") {
+                if (a < b) {
+                    return -1;
+                } else if (a > b) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            } else if (typeof a === "string") {
+                // The + ensures that the answer is always numeric rather than boolean.
+                a < b ? -1 : +(a > b);
             }
         }
     }

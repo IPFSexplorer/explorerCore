@@ -7,8 +7,8 @@ export default class BaseQuery<T> {
 
     // [Symbol.iterator](): Iterator<T> {}
     // public select(select: (e: T) => Object): Queriable<any> {}
-    public all() {
-        return new AllResolver(this.queryPlanner).resolve();
+    public async all() {
+        return await new AllResolver(this.queryPlanner).resolve();
     }
     // public first(): T {}
     // public limit(limit: number): Queriable<T> {}

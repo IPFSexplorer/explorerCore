@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <split-pane :min-percent="20" :default-percent="60" split="vertical">
+        <split-pane :min-percent="20" :default-percent="30" split="vertical">
             <template slot="paneL">
                 <split-pane split="horizontal">
                     <template slot="paneL" class="panel">

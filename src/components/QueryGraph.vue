@@ -1,11 +1,12 @@
 <template>
     <div class="graphContainer height100 width100">
-        <div>{{ nodes }}</div>
+        <h2 class="header">Query graph</h2>
         <cytoscape
             ref="cy"
             :config="config"
             :afterCreated="afterCreated"
             class="graph height100 width100"
+            :preConfig="preConfig"
         >
             <cy-element
                 v-for="def in nodes"
@@ -18,6 +19,7 @@
 
 <script lang="ts">
 import VueCytoscape from "vue-cytoscape";
+
 import { Component, Prop, Vue } from "vue-property-decorator";
 
 Vue.use(VueCytoscape);
@@ -26,9 +28,9 @@ Vue.use(VueCytoscape);
     components: {}
 })
 export default class QueryGraph extends Vue {
-    afterCreated(cy) {
-        cy.resize();
-    }
+    preConfig(cytoscape) {}
+
+    afterCreated(cy) {}
 
     get nodes() {
         return this.$store.getters.nodes;
@@ -42,18 +44,41 @@ export default class QueryGraph extends Vue {
                         selector: "node",
                         style: {
                             "background-color": "#666",
-                            label: "data(id)"
+                            label: "data(label)"
+                        }
+                    },
+                    {
+                        selector: "node.flash",
+                        style: {
+                            "background-color": "#fff"
+                        }
+                    },
+                    {
+                        selector: "edge",
+                        style: {
+                            width: 1,
+                            label: "data(label)",
+                            "target-arrow-shape": "triangle",
+                            "line-color": "#9dbaea",
+                            "target-arrow-color": "#9dbaea",
+                            "curve-style": "bezier"
+                        }
+                    },
+                    {
+                        selector: "edge.toWay",
+                        style: {
+                            width: 4,
+                            label: "data(label)",
+                            "target-arrow-shape": "triangle",
+                            "source-arrow-shape": "triangle",
+                            "line-color": "#9dbaea",
+                            "target-arrow-color": "#9dbaea",
+                            "source-arrow-color": "#9dbaea",
+                            "curve-style": "bezier"
                         }
                     }
                 ]
-            },
-
-            elements: [
-                {
-                    // node a
-                    data: { id: "a" }
-                }
-            ]
+            }
         };
     }
 }
@@ -79,5 +104,12 @@ export default class QueryGraph extends Vue {
 
 #cytoscape-div {
     height: 100%;
+}
+
+.header {
+    position: absolute;
+    text-align: center;
+    left: 0;
+    right: 0;
 }
 </style>

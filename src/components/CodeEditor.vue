@@ -21,27 +21,27 @@ import { Block } from "../models/Block";
 export default class CodeEditor extends Vue {
     data() {
         return {
-            code: `new this.Block()
+            code: `await new this.Block()
                 .where("height")
-                .gt(5)
+                .greatherThan(5)
                 .and("height")
-                .lt(10)
-                .all()`
+                .lessThan(10)
+                .all();`
         };
     }
 
-    runQuery() {
+    async runQuery() {
         this.$store.dispatch("newQuery", this.$data.code);
         console.log(this.$data.code);
-        console.log(this.evalWithCOntext(this.$data.code));
+        console.log(await this.evalWithCOntext(this.$data.code));
     }
 
     evalWithCOntext(code) {
         return function(code) {
-            return eval(code);
+            return eval("(async () => {" + code + "})()");
         }.call(
             {
-                Block: Block
+                Block
             },
             code
         );
