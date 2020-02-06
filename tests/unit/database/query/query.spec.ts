@@ -4,12 +4,14 @@ import { Block } from "@/models/Block";
 import { BPlusTree } from "@/database/index/bTree/BTree";
 import IndexStore from "@/database/DAL/indexes/indexStore";
 import { container } from "tsyringe";
-import LocalBTreeChildren from "@/database/index/bTree/LocalBTreeChildren";
+import LocalBTreeChildren from "@/database/index/bTree/local/LocalBTreeChildren";
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
+
+logger.silent = true;
 
 describe("query", function () {
     beforeAll(async () => {
-        logger.silent = false;
+        logger.silent = true;
         container.register("BTreeChildren", {
             useClass: LocalBTreeChildren
         });
@@ -55,10 +57,8 @@ describe("query", function () {
         });
     });
 
-
     describe("comparators", () => {
         it("should find somethin by string key", async () => {
-
             const t = new BPlusTree<string, Block>(8);
 
             const blockGetter = new BlocksGetter(10);

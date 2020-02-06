@@ -12,7 +12,7 @@ describe("dag", function() {
     });
 
     afterEach(async () => {
-        return (await IPFSconnector.getInstanceAsync()).shutDown();
+        return (await IPFSconnector.getInstanceAsync()).shutDownAsync();
     });
 
     describe("get", () => {

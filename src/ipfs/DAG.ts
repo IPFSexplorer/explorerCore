@@ -11,7 +11,7 @@ export default abstract class DAG {
         return cid;
     }
 
-    public static async Get(cid: string, path: string) {
+    public static async GetAsync(cid: string, path: string = null) {
         const node = await DAG.getNodeAsync();
         const result = await node.dag.get(cid, path);
         return result.value;

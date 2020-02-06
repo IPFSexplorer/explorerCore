@@ -47,9 +47,9 @@ export default class IPFSconnector {
         return this._node;
     }
 
-    public shutDown() {
+    public async shutDownAsync() {
         try {
-            this._node.stop();
+            await this._node.stop();
             logger.info("Node stopped!");
         } catch (error) {
             logger.error("Node failed to stop!", error);

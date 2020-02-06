@@ -4,7 +4,7 @@ export interface BTreeChildren<K, V> {
     slice(start?: number, end?: number): BTreeChildren<K, V>;
     shift();
     push(...items: Child<K, V>[]);
-    items: Child<K, V>[];
+    items: any[];
     length: number;
     get(i: number): Promise<Child<K, V>>;
     [Symbol.asyncIterator]();

@@ -13,7 +13,7 @@ import MPLEX from "pull-mplex";
 import SECIO from "libp2p-secio";
 import cbor from "ipld-dag-cbor";
 
-const swarmKeyPath = path.resolve(__dirname, "../swarm.key");
+const swarmKeyPath = path.resolve(__dirname, "./swarm.key");
 
 /**
  * This is the bundle we will use to create our fully customized libp2p bundle.

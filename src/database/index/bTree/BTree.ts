@@ -272,7 +272,7 @@ export class BPlusTree<K, V> {
                 }
             } else if (typeof a === "string") {
                 // The + ensures that the answer is always numeric rather than boolean.
-                a < b ? -1 : +(a > b);
+                return a < b ? -1 : +(a > b);
             }
         }
     }

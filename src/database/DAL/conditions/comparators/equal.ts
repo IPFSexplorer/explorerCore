@@ -18,7 +18,7 @@ export default class equal implements IComparator {
 
     public async getIterator(btree: BPlusTree<any, any>) {
         let val = await btree.find(this.value);
-        let wasCalledFirstTime = true
+        let wasCalledFirstTime = true;
         return {
             [Symbol.asyncIterator]: () => {
                 return {
