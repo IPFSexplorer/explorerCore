@@ -9,7 +9,7 @@ import BlocksGetter from "@/../tests/demoData/BlockGetter";
 
 logger.silent = true;
 
-describe("query", function () {
+describe("query", function() {
     beforeAll(async () => {
         logger.silent = true;
         container.register("BTreeChildren", {

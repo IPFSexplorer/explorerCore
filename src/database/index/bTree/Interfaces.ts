@@ -1,7 +1,9 @@
+import CID from "cids";
+
 export interface BTreeChildren<K, V> {
     splice(start: number, deleteCount?: number);
     splice(start: number, deleteCount: number, ...items);
-    slice(start?: number, end?: number): BTreeChildren<K, V>;
+    slice(start?: number, end?: number);
     shift();
     push(...items: Child<K, V>[]);
     items: any[];
@@ -12,10 +14,7 @@ export interface BTreeChildren<K, V> {
 
 export interface Node<K, V> {
     isLeaf?: boolean;
-    parent?: Node<K, V>;
     children: BTreeChildren<K, V>;
-    previousNode?: Node<K, V>;
-    nextNode?: Node<K, V>;
 }
 
 export interface Child<K, V> {

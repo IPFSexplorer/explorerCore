@@ -13,7 +13,7 @@ container.register("BTreeChildren", {
 
 const hashIndex = new BPlusTree<number, Block>(4);
 const heightIndex = new BPlusTree<number, Block>(4);
-(async function () {
+(async function() {
     const blockGetter = new BlocksGetter(10);
     for await (let b of blockGetter) {
         const block = new Block(b);

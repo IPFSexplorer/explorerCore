@@ -1,19 +1,37 @@
 import { BTreeChildren, Child } from "../Interfaces";
-import store from "@/store";
+import CID from "cids";
+import DAG from "@/ipfs/DAG";
+
+export interface InnerChild<K> {
+    key: K;
+    value?: string;
+    node?: string;
+}
 
 export default class IPFSBTreeChildren<K, V> implements BTreeChildren<K, V> {
-    constructor() { }
+    constructor() {}
 
-    items: Child<K, V>[] = [];
+    items: InnerChild<K>[] = [];
 
-    splice(start: number, deleteCount: number, ...items: Child<K, V>[]) {
-        return this.items.splice(start, deleteCount, ...items);
+    async splice(start: number, deleteCount: number, ...items: Child<K, V>[]) {
+        var results = await Promise.all(
+            items.map(async item => {
+                return {
+                    key: item.key,
+                    value: await DAG.PutAsync(item.value)
+                };
+            })
+        );
+        return this.items.splice(start, deleteCount, ...results);
     }
 
-    slice(start?: number, end?: number): BTreeChildren<K, V> {
+    async slice(start?: number, end?: number): Promise<BTreeChildren<K, V>> {
         const newChildren = new IPFSBTreeChildren<K, V>();
         for (const item of this.items.slice(start, end)) {
-            newChildren.push(item);
+            await newChildren.push({
+                key: item.key,
+                value: await DAG.GetAsync(item.value)
+            });
         }
 
         return newChildren;
@@ -23,8 +41,11 @@ export default class IPFSBTreeChildren<K, V> implements BTreeChildren<K, V> {
         return this.items.shift();
     }
 
-    push(...items: Child<K, V>[]) {
-        return this.items.push(...items);
+    async push(...items: Child<K, V>[]) {
+        for (const item of items) {
+            this.items.push(await DAG.PutAsync(item));
+        }
+        return this.items;
     }
 
     [Symbol.asyncIterator](): AsyncIterator<Child<K, V>> {
@@ -42,6 +63,9 @@ export default class IPFSBTreeChildren<K, V> implements BTreeChildren<K, V> {
     }
 
     async get(i: number): Promise<Child<K, V>> {
-        return this.items[i];
+        return {
+            key: this.items[i].key,
+            value: await DAG.GetAsync(this.items[i].value)
+        };
     }
 }

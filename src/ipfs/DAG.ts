@@ -1,4 +1,5 @@
 import IPFSconnector from "./IPFSConnector";
+import CID from "cids";
 
 export default abstract class DAG {
     private static async getNodeAsync() {
@@ -11,7 +12,7 @@ export default abstract class DAG {
         return cid;
     }
 
-    public static async GetAsync(cid: string, path: string = null) {
+    public static async GetAsync(cid: string | CID, path: string = "") {
         const node = await DAG.getNodeAsync();
         const result = await node.dag.get(cid, path);
         return result.value;

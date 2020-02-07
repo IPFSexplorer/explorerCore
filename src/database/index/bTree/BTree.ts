@@ -1,6 +1,6 @@
 import { BTreeChildren, Node, Child } from "./Interfaces";
 import { container } from "tsyringe";
-import store from "@/store";
+import IPFSBtreeNode from "./ipfs/IPFSBtreeNode";
 export class BPlusTree<K, V> {
     root: Node<K, V>;
     branching: number;
@@ -12,10 +12,10 @@ export class BPlusTree<K, V> {
     ) {
         this.branching = branching;
         this.comparator = comparator;
-        this.root = {
+        this.root = new IPFSBtreeNode<K, V>({
             isLeaf: true,
             children: container.resolve("BTreeChildren")
-        };
+        });
     }
 
     public async find(key: K): Promise<V> {
@@ -43,7 +43,7 @@ export class BPlusTree<K, V> {
             return;
         }
 
-        leaf.children.splice(index, 0, { key, value });
+        await leaf.children.splice(index, 0, { key, value });
 
         if (leaf.children.length > this.branching - 1) {
             await this.split(leaf);
@@ -56,25 +56,16 @@ export class BPlusTree<K, V> {
         );
         let midKey = (await node.children.get(midIndex)).key;
 
-        let newNode: Node<K, V> = {
+        let newNode: Node<K, V> = new IPFSBtreeNode<K, V>({
             isLeaf: node.isLeaf,
-            parent: node.parent,
-            children: node.children.slice(midIndex)
-        };
+            children: await node.children.slice(midIndex)
+        });
 
-        if (newNode.isLeaf) {
-            newNode.nextNode = node.nextNode;
-            newNode.previousNode = node;
-
-            if (newNode.nextNode) newNode.nextNode.previousNode = newNode;
-            node.nextNode = newNode;
-        }
-
-        node.children = node.children.slice(0, midIndex);
+        node.children = await node.children.slice(0, midIndex);
 
         if (!node.isLeaf) {
-            let middleNode = newNode.children.shift().node;
-            node.children.push({ key: null, node: middleNode });
+            let middleNode = newNode.children.shift().value;
+            await node.children.push({ key: null, node: middleNode });
 
             for await (let child of newNode.children) {
                 child.node.parent = newNode;
@@ -85,7 +76,7 @@ export class BPlusTree<K, V> {
         if (parent) {
             let { index } = await this.getChildIndex(midKey, parent);
 
-            parent.children.splice(index, 0, { key: midKey, node: node });
+            await parent.children.splice(index, 0, { key: midKey, node: node });
             (await parent.children.get(index + 1)).node = newNode;
 
             if (parent.children.length > this.branching) {
@@ -95,14 +86,14 @@ export class BPlusTree<K, V> {
             const newChildrenClass: BTreeChildren<K, V> = container.resolve(
                 "BTreeChildren"
             );
-            newChildrenClass.push(
+            await newChildrenClass.push(
                 { key: midKey, node: node },
                 { key: null, node: newNode }
             );
 
-            this.root = {
+            this.root = new IPFSBtreeNode<K, V>({
                 children: newChildrenClass
-            };
+            });
 
             node.parent = newNode.parent = this.root;
             this.root.parent = null;
@@ -116,16 +107,11 @@ export class BPlusTree<K, V> {
             let { index, found } = await this.getChildIndex(key, node);
 
             let child = await node.children.get(index + (found ? 1 : 0));
-            await store.dispatch("addNode", child);
             return await this._findLeaf(key, child.node);
         }
     }
 
     public async traverseRight(from: K) {
-        await store.dispatch("addNode", {
-            key: "root",
-            node: this.root
-        });
         let leaf = await this._findLeaf(from, this.root);
         let { index, found } = await this.getChildIndex(from, leaf);
         return {
@@ -138,18 +124,12 @@ export class BPlusTree<K, V> {
                         };
 
                         if (index + 1 >= leaf.children.length) {
-                            if (!leaf.nextNode) {
+                            if (!(await leaf.getNextNode())) {
                                 result.done = true;
                                 return result;
                             }
-                            leaf = leaf.nextNode;
+                            leaf = await leaf.getNextNode();
                             index = 0;
-                            await store.dispatch(
-                                "addNode",
-                                leaf.parent.children.items.find(
-                                    ch => ch.node === leaf
-                                )
-                            );
                         } else {
                             index++;
                         }
@@ -161,10 +141,6 @@ export class BPlusTree<K, V> {
     }
 
     public async traverseLeft(from: K) {
-        await store.dispatch("addNode", {
-            key: "root",
-            node: this.root
-        });
         let leaf = await this._findLeaf(from, this.root);
         let { index, found } = await this.getChildIndex(from, leaf);
         return {
@@ -177,18 +153,12 @@ export class BPlusTree<K, V> {
                         };
 
                         if (index <= 0) {
-                            if (!leaf.previousNode) {
+                            if (!(await leaf.getPreviousNode())) {
                                 result.done = true;
                                 return result;
                             }
-                            leaf = leaf.previousNode;
+                            leaf = await leaf.getPreviousNode();
                             index = leaf.children.length - 1;
-                            await store.dispatch(
-                                "addNode",
-                                leaf.parent.children.items.find(
-                                    ch => ch.node === leaf
-                                )
-                            );
                         } else {
                             index--;
                         }
