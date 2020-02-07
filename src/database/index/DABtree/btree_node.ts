@@ -1,46 +1,64 @@
 import { Key, Value, Comparator, Visitor } from "./types";
+import DAG from "@/ipfs/DAG";
+import CID from "cids";
+import { plainToClass, plainToClassFromExist } from "class-transformer";
 
 export default class BTreeNode<Key, Value> {
     leaf: boolean;
     keys: Array<Key>;
     data: Array<Value>;
     n: number;
-    C: Array<BTreeNode<Key, Value>>;
+    _C: Array<CID>;
+    // _C: Array<BTreeNode<Key, Value>>
 
-    constructor(t: number, isLeaf: boolean) {
+    constructor(t: number = 0, isLeaf: boolean = false) {
         // Copy the given minimum degree and leaf property
         this.leaf = isLeaf; // Is true when node is leaf. Otherwise false
 
         // Allocate memory for maximum number of possible keys
         // and child pointers
-        this.keys = new Array(2 * t - 1); // An array of keys
-        this.data = new Array(2 * t - 1);
-        this.C = new Array(2 * t); // An array of child pointers
-
+        if (t > 0) {
+            this.keys = new Array(2 * t - 1); // An array of keys
+            this.data = new Array(2 * t - 1);
+            this._C = new Array(2 * t); // An array of child pointers
+        }
         this.n = 0; // Current number of keys
     }
 
+    async getChild(idx: number): Promise<BTreeNode<Key, Value>> {
+        //return this._C[idx];
+        let nodeData = await DAG.GetAsync(this._C[idx]);
+        return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
+    }
+
+    async setChild(node: BTreeNode<Key, Value>, idx: number): Promise<void> {
+        //this._C[idx] = node;
+        this._C[idx] = await DAG.PutAsync(node);
+    }
+
     // Function to traverse all nodes in a subtree rooted with this node
-    traverse(visitor: Visitor<Key, Value>) {
+    async traverse(visitor: Visitor<Key, Value>): Promise<void> {
         // There are n keys and n+1 children, travers through n keys
         // and first n children
-        const C = this.C;
         const keys = this.keys;
         const data = this.data;
         let i;
         for (i = 0; i < this.n; i++) {
             // If this is not leaf, then before printing key[i],
             // traverse the subtree rooted with child C[i].
-            if (!this.leaf) C[i].traverse(visitor);
+            if (!this.leaf) await (await this.getChild(i)).traverse(visitor);
             visitor(keys[i], data[i]);
         }
 
         // Print the subtree rooted with last child
-        if (!this.leaf) C[i].traverse(visitor);
+        if (!this.leaf) await (await this.getChild(i)).traverse(visitor);
     }
 
     // Function to search key k in subtree rooted with this node
-    search(key: Key, comparator: Comparator<Key>): BTreeNode<Key, Value> {
+    async search(
+        key: Key,
+        comparator: Comparator<Key>
+    ): Promise<BTreeNode<Key, Value>> {
         // Find the first key greater than or equal to k
         let i = 0;
         const keys = this.keys;
@@ -53,7 +71,7 @@ export default class BTreeNode<Key, Value> {
         if (this.leaf) return null;
 
         // Go to the appropriate child
-        return this.C[i].search(key, comparator);
+        return await (await this.getChild(i)).search(key, comparator);
     }
 
     // A utility function that returns the index of the first key that is
@@ -67,17 +85,16 @@ export default class BTreeNode<Key, Value> {
     // A utility function to insert a new key in this node
     // The assumption is, the node must be non-full when this
     // function is called
-    insertNonFull(
+    async insertNonFull(
         k: Key,
         value: Value,
         comparator: Comparator<Key>,
         t: number
-    ) {
+    ): Promise<void> {
         // Initialize index as index of rightmost element
         let i = this.n - 1;
         const keys = this.keys;
         const data = this.data;
-        const C = this.C;
 
         // If this is a leaf node
         if (this.leaf) {
@@ -100,23 +117,22 @@ export default class BTreeNode<Key, Value> {
             while (i >= 0 && comparator(keys[i], k) > 0) i--;
 
             // See if the found child is full
-            if (C[i + 1].n === 2 * t - 1) {
+            if ((await this.getChild(i + 1)).n === 2 * t - 1) {
                 // If the child is full, then split it
-                this.splitChild(i + 1, C[i + 1], t);
+                await this.splitChild(i + 1, await this.getChild(i + 1), t);
                 // After split, the middle key of C[i] goes up and
                 // C[i] is splitted into two.  See which of the two
                 // is going to have the new key
                 if (comparator(keys[i + 1], k) < 0) i++;
             }
-            C[i + 1].insertNonFull(k, value, comparator, t);
+            await (await this.getChild(i + 1)).insertNonFull(k, value, comparator, t);
         }
     }
 
     // A utility function to split the child y of this node
     // Note that y must be full when this function is called
-    splitChild(i: number, y: BTreeNode<Key, Value>, t: number) {
+    async splitChild(i: number, y: BTreeNode<Key, Value>, t: number) {
         const n = this.n;
-        const C = this.C;
         const data = this.data;
         const keys = this.keys;
 
@@ -132,7 +148,8 @@ export default class BTreeNode<Key, Value> {
 
         // Copy the last t children of y to z
         if (!y.leaf) {
-            for (let j = 0; j < t; j++) z.C[j] = y.C[j + t];
+            for (let j = 0; j < t; j++)
+                await z.setChild(await y.getChild(j + t), j);
         }
 
         // Reduce the number of keys in y
@@ -140,10 +157,11 @@ export default class BTreeNode<Key, Value> {
 
         // Since this node is going to have a new child,
         // create space of new child
-        for (let j = n; j >= i + 1; j--) C[j + 1] = C[j];
+        for (let j = n; j >= i + 1; j--)
+            await this.setChild(await this.getChild(j), j + 1);
 
         // Link the new child to this node
-        C[i + 1] = z;
+        await this.setChild(z, i + 1);
 
         // A key of y will move to this node. Find location of
         // new key and move all greater keys one space ahead
@@ -161,18 +179,17 @@ export default class BTreeNode<Key, Value> {
     }
 
     // A function to remove the key k from the sub-tree rooted with this node
-    remove(k: Key, comparator: Comparator<Key>, t: number) {
+    async remove(k: Key, comparator: Comparator<Key>, t: number) {
         let idx = this.findKey(k, comparator);
         const n = this.n;
         const keys = this.keys;
-        const C = this.C;
 
         // The key to be removed is present in this node
         if (idx < n && comparator(keys[idx], k) === 0) {
             // If the node is a leaf node - removeFromLeaf is called
             // Otherwise, removeFromNonLeaf function is called
             if (this.leaf) this.removeFromLeaf(idx);
-            else this.removeFromNonLeaf(idx, comparator, t);
+            else await this.removeFromNonLeaf(idx, comparator, t);
         } else {
             // If this node is a leaf node, then the key is not present in tree
             if (this.leaf)
@@ -185,13 +202,14 @@ export default class BTreeNode<Key, Value> {
 
             // If the child where the key is supposed to exist has less that t keys,
             // we fill that child
-            if (C[idx].n < t) this.fill(idx, t);
+            if ((await this.getChild(idx)).n < t) await this.fill(idx, t);
 
             // If the last child has been merged, it must have merged with the previous
             // child and so we recurse on the (idx-1)th child. Else, we recurse on the
             // (idx)th child which now has atleast t keys
-            if (flag && idx > n) C[idx - 1].remove(k, comparator, t);
-            else C[idx].remove(k, comparator, t);
+            if (flag && idx > n)
+                await (await this.getChild(idx - 1)).remove(k, comparator, t);
+            else await (await this.getChild(idx)).remove(k, comparator, t);
         }
     }
 
@@ -209,10 +227,13 @@ export default class BTreeNode<Key, Value> {
     }
 
     // A function to remove the idx-th key from this node - which is a non-leaf node
-    removeFromNonLeaf(idx: number, comparator: Comparator<Key>, t: number) {
+    async removeFromNonLeaf(
+        idx: number,
+        comparator: Comparator<Key>,
+        t: number
+    ) {
         const keys = this.keys;
         const data = this.data;
-        const C = this.C;
 
         let k: Key = keys[idx];
 
@@ -220,83 +241,82 @@ export default class BTreeNode<Key, Value> {
         // find the predecessor 'pred' of k in the subtree rooted at
         // C[idx]. Replace k by pred. Recursively delete pred
         // in C[idx]
-        if (C[idx].n >= t) {
-            let cur = C[idx];
-            while (!cur.leaf) cur = cur.C[cur.n];
+        if ((await this.getChild(idx)).n >= t) {
+            let cur = await this.getChild(idx);
+            while (!cur.leaf) cur = await cur.getChild(cur.n);
             const predKey = cur.keys[cur.n - 1];
             keys[idx] = predKey;
             data[idx] = cur.data[cur.n - 1];
-            C[idx].remove(predKey, comparator, t);
-        } else if (C[idx + 1].n >= t) {
+            await (await this.getChild(idx)).remove(predKey, comparator, t);
+        } else if ((await this.getChild(idx + 1)).n >= t) {
             // If the child C[idx] has less that t keys, examine C[idx+1].
             // If C[idx+1] has atleast t keys, find the successor 'succ' of k in
             // the subtree rooted at C[idx+1]
             // Replace k by succ
             // Recursively delete succ in C[idx+1]
-            let cur = C[idx + 1];
-            while (!cur.leaf) cur = cur.C[0];
+            let cur = await this.getChild(idx + 1);
+            while (!cur.leaf) cur = await cur.getChild(0);
             // Return the first key of the leaf
             const succKey = cur.keys[0];
             const succData = cur.data[0];
             keys[idx] = succKey;
             data[idx] = cur.data[0];
-            C[idx + 1].remove(succKey, comparator, t);
+            await (await this.getChild(idx + 1)).remove(succKey, comparator, t);
         } else {
             // If both C[idx] and C[idx+1] has less that t keys,merge k and all of C[idx+1]
             // into C[idx]
             // Now C[idx] contains 2t-1 keys
             // Free C[idx+1] and recursively delete k from C[idx]
-            this.merge(idx, t);
-            C[idx].remove(k, comparator, t);
+            await this.merge(idx, t);
+            await (await this.getChild(idx)).remove(k, comparator, t);
         }
     }
 
     // A function to get predecessor of keys[idx]
-    prev(idx: number): Key {
+    async prev(idx: number): Promise<Key> {
         // Keep moving to the right most node until we reach a leaf
-        const C = this.C;
-        let cur = C[idx];
-        while (!cur.leaf) cur = cur.C[cur.n];
+        // eslint-disable-next-line prettier/prettier
+        let cur = (await this.getChild(idx));
+        while (!cur.leaf) cur = await cur.getChild(cur.n);
         // Return the last key of the leaf
         return cur.keys[cur.n - 1];
     }
 
-    next(idx: number): Key {
+    async next(idx: number): Promise<Key> {
         // Keep moving the left most node starting from C[idx+1] until we reach a leaf
-        const C = this.C;
-        let cur = C[idx + 1];
-        while (!cur.leaf) cur = cur.C[0];
+        let cur = await this.getChild(idx + 1);
+        while (!cur.leaf) cur = await cur.getChild(0);
         // Return the first key of the leaf
         return cur.keys[0];
     }
 
     // A function to fill child C[idx] which has less than t-1 keys
-    fill(idx: number, t: number) {
+    async fill(idx: number, t: number): Promise<void> {
         const n = this.n;
-        const C = this.C;
         // If the previous child(C[idx-1]) has more than t-1 keys, borrow a key
         // from that child
-        if (idx !== 0 && C[idx - 1].n >= t) this.borrowFromPrev(idx);
+        if (idx !== 0 && (await this.getChild(idx - 1)).n >= t)
+            await this.borrowFromPrev(idx);
         // If the next child(C[idx+1]) has more than t-1 keys, borrow a key
         // from that child
-        else if (idx !== n && C[idx + 1].n >= t) this.borrowFromNext(idx);
+        else if (idx !== n && (await this.getChild(idx + 1)).n >= t)
+            await this.borrowFromNext(idx);
         // Merge C[idx] with its sibling
         // If C[idx] is the last child, merge it with with its previous sibling
         // Otherwise merge it with its next sibling
         else {
-            if (idx !== n) this.merge(idx, t);
-            else this.merge(idx - 1, t);
+            if (idx !== n) await this.merge(idx, t);
+            else await this.merge(idx - 1, t);
         }
     }
 
     // A function to borrow a key from C[idx-1] and insert it
     // into C[idx]
-    borrowFromPrev(idx: number) {
-        const C = this.C;
+    async borrowFromPrev(idx: number): Promise<void> {
         const keys = this.keys;
         const data = this.data;
-        const child = C[idx];
-        const sibling = C[idx - 1];
+        const child = await this.getChild(idx);
+        const sibling = await this.getChild(idx - 1);
 
         // The last key from C[idx-1] goes up to the parent and key[idx-1]
         // from parent is inserted as the first key in C[idx]. Thus, the  loses
@@ -310,7 +330,8 @@ export default class BTreeNode<Key, Value> {
 
         // If C[idx] is not a leaf, move all its child pointers one step ahead
         if (!child.leaf) {
-            for (let i = child.n; i >= 0; i--) child.C[i + 1] = child.C[i];
+            for (let i = child.n; i >= 0; i--)
+                await child.setChild(await child.getChild(i), i + 1)
         }
 
         // Setting child's first key equal to keys[idx-1] from the current node
@@ -318,7 +339,8 @@ export default class BTreeNode<Key, Value> {
         child.data[0] = data[idx - 1];
 
         // Moving sibling's last child as C[idx]'s first child
-        if (!this.leaf) child.C[0] = sibling.C[sibling.n];
+        if (!this.leaf)
+            await child.setChild(await sibling.getChild(sibling.n), 0);
 
         // Moving the key from the sibling to the parent
         // This reduces the number of keys in the sibling
@@ -331,13 +353,12 @@ export default class BTreeNode<Key, Value> {
 
     // A function to borrow a key from the C[idx+1] and place
     // it in C[idx]
-    borrowFromNext(idx: number) {
-        const C = this.C;
+    async borrowFromNext(idx: number): Promise<void> {
         const keys = this.keys;
         const data = this.data;
 
-        const child: BTreeNode<Key, Value> = C[idx];
-        const sibling: BTreeNode<Key, Value> = C[idx + 1];
+        const child: BTreeNode<Key, Value> = await this.getChild(idx);
+        const sibling: BTreeNode<Key, Value> = await this.getChild(idx + 1);
 
         // keys[idx] is inserted as the last key in C[idx]
         child.keys[child.n] = keys[idx];
@@ -345,7 +366,8 @@ export default class BTreeNode<Key, Value> {
 
         // Sibling's first child is inserted as the last child
         // into C[idx]
-        if (!child.leaf) child.C[child.n + 1] = sibling.C[0];
+        if (!child.leaf)
+            await child.setChild(await sibling.getChild(0), child.n + 1);
 
         //The first key from sibling is inserted into keys[idx]
         keys[idx] = sibling.keys[0];
@@ -360,7 +382,7 @@ export default class BTreeNode<Key, Value> {
         // Moving the child pointers one step behind
         if (!sibling.leaf) {
             for (let i = 1; i <= sibling.n; i++)
-                sibling.C[i - 1] = sibling.C[i];
+                await sibling.setChild(await sibling.getChild(i), i - 1);
         }
 
         // Increasing and decreasing the key count of C[idx] and C[idx+1]
@@ -371,13 +393,12 @@ export default class BTreeNode<Key, Value> {
 
     // A function to merge C[idx] with C[idx+1]
     // C[idx+1] is freed after merging
-    merge(idx: number, t: number) {
+    async merge(idx: number, t: number): Promise<void> {
         const n = this.n;
-        const C = this.C;
         const keys = this.keys;
         const data = this.data;
-        const child = C[idx];
-        const sibling = C[idx + 1];
+        const child = await this.getChild(idx);
+        const sibling = await this.getChild(idx + 1);
 
         // Pulling a key from the current node and inserting it into (t-1)th
         // position of C[idx]
@@ -391,7 +412,8 @@ export default class BTreeNode<Key, Value> {
 
         // Copying the child pointers from C[idx+1] to C[idx]
         if (!child.leaf) {
-            for (let i = 0; i <= sibling.n; i++) child.C[i + t] = sibling.C[i];
+            for (let i = 0; i <= sibling.n; i++)
+                await child.setChild(await sibling.getChild(i), i + t);
         }
 
         // Moving all keys after idx in the current node one step before -
@@ -402,7 +424,8 @@ export default class BTreeNode<Key, Value> {
         }
 
         // Moving the child pointers after (idx+1) in the current node one step before
-        for (let i = idx + 2; i <= n; i++) C[i - 1] = C[i];
+        for (let i = idx + 2; i <= n; i++)
+            await this.setChild(await this.getChild(i), i - 1);
 
         // Updating the key count of child and the current node
         child.n += sibling.n + 1;
@@ -410,12 +433,12 @@ export default class BTreeNode<Key, Value> {
         return;
     }
 
-    height(): number {
+    async height(): Promise<number> {
         if (this.leaf) return 1;
         else {
             let h = 0;
             for (let i = 0; i < this.n; i++) {
-                h = Math.max(h, this.C[i].height());
+                h = Math.max(h, await (await this.getChild(i)).height());
             }
             return h + 1;
         }

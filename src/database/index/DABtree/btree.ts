@@ -17,18 +17,20 @@ export default class BTree<Key, Value> {
         this.comparator = comparator;
     }
 
-    traverse(visitor: Visitor<Key, Value>): BTree<Key, Value> {
-        if (this.root !== null) this.root.traverse(visitor);
+    async traverse(visitor: Visitor<Key, Value>): Promise<BTree<Key, Value>> {
+        if (this.root !== null) await this.root.traverse(visitor);
         return this;
     }
 
     // function to search a key in this tree
-    search(k: Key) {
-        return this.root === null ? null : this.root.search(k, this.comparator);
+    async search(k: Key): Promise<BTreeNode<Key, Value>> {
+        return this.root === null
+            ? null
+            : await this.root.search(k, this.comparator);
     }
 
     // The main function that inserts a new key in this B-Tree
-    insert(k: Key, value: Value): BTree<Key, Value> {
+    async insert(k: Key, value: Value): Promise<BTree<Key, Value>> {
         const t = this.t;
         // If tree is empty
         if (this.root === null) {
@@ -46,61 +48,66 @@ export default class BTree<Key, Value> {
                 // Allocate memory for new root
                 const s = new BTreeNode<Key, Value>(t, false);
                 // Make old root as child of new root
-                s.C[0] = root;
+                await s.setChild(root, 0);
 
                 // Split the old root and move 1 key to the new root
-                s.splitChild(0, root, t);
+                await s.splitChild(0, root, t);
 
                 // New root has two children now.  Decide which of the
                 // two children is going to have new key
                 let i = 0;
                 if (comparator(s.keys[0], k) < 0) i++;
-                s.C[i].insertNonFull(k, value, comparator, t);
+                await (await s.getChild(i)).insertNonFull(
+                    k,
+                    value,
+                    comparator,
+                    t
+                );
 
                 // Change root
                 this.root = s;
             } else {
                 // If root is not full, call insertNonFull for root
-                root.insertNonFull(k, value, comparator, t);
+                await root.insertNonFull(k, value, comparator, t);
             }
         }
         return this;
     }
 
     // The main function that removes a new key in thie B-Tree
-    remove(k: Key): BTree<Key, Value> {
+    async remove(k: Key): Promise<BTree<Key, Value>> {
         if (this.root === null) {
             throw new Error("The tree is empty");
         }
 
         // Call the remove function for root
-        this.root.remove(k, this.comparator, this.t);
+        await this.root.remove(k, this.comparator, this.t);
 
         // If the root node has 0 keys, make its first child as the new root
         //  if it has a child, otherwise set root as NULL
         if (this.root.n === 0) {
             const tmp = this.root;
             if (this.root.leaf) this.root = null;
-            else this.root = this.root.C[0];
+            else this.root = await this.root.getChild(0);
         }
 
         return this;
     }
 
-    height(): number {
+    async height(): Promise<number> {
         if (this.root === null) return 0;
-        return this.root.height();
+        return await this.root.height();
     }
 
-    keys(): Array<Key> {
+    async keys(): Promise<Array<Key>> {
         const keys: Array<Key> = [];
-        this.traverse((key: Key) => keys.push(key));
+        await this.traverse((key: Key) => keys.push(key));
         return keys;
     }
 
-    entries(): Array<Value> {
+    async entries(): Promise<Array<Value>> {
         const values: Array<Value> = [];
-        this.traverse((key: Key, value: Value) => values.push(value));
+        await this.traverse((key: Key, value: Value) => values.push(value));
         return values;
     }
 }
