@@ -1,11 +1,11 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
-import { BPlusTree } from "@/database/index/bTree/BTree";
+import BTree from "@/database/index/bTree/BTree";
 
 export default class lessThan implements IComparator {
     value: any;
     property: any;
-    btree: BPlusTree<any, any>;
+    btree: BTree<any, any>;
     constructor(property, value, entityName) {
         this.property = property;
         this.value = value;
@@ -16,7 +16,7 @@ export default class lessThan implements IComparator {
         return val < this.value;
     }
 
-    public async getIterator(btree: BPlusTree<any, any>) {
-        return await btree.traverseLeft(this.value);
+    public async getIterator(btree: BTree<any, any>) {
+        // return await btree.traverseLeft(this.value);
     }
 }

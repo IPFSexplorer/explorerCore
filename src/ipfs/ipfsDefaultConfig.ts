@@ -7,11 +7,16 @@ import TCP from "libp2p-tcp";
 import MulticastDNS from "libp2p-mdns";
 import WebSocketStar from "libp2p-websocket-star";
 import Bootstrap from "libp2p-bootstrap";
-import SPDY from "libp2p-spdy";
+//import SPDY from "libp2p-spdy";
 import KadDHT from "libp2p-kad-dht";
 import MPLEX from "pull-mplex";
 import SECIO from "libp2p-secio";
 import cbor from "ipld-dag-cbor";
+import getPort from "get-port";
+import WS from "libp2p-websockets";
+import WebRTCStar from "libp2p-webrtc-star";
+import ipnsUtils from "ipfs/src/core/ipns/routing/utils";
+import Multiplex from "libp2p-mplex";
 
 const swarmKeyPath = path.resolve(__dirname, "./swarm.key");
 
@@ -45,7 +50,7 @@ const libp2pBundle = opts => {
         modules: {
             connProtector: new Protector(fs.readFileSync(swarmKeyPath)),
             transport: [TCP, wsstar],
-            streamMuxer: [MPLEX, SPDY],
+            streamMuxer: [MPLEX /*SPDY*/],
             connEncryption: [SECIO],
             peerDiscovery: [MulticastDNS, Bootstrap, wsstar.discovery],
             dht: KadDHT
@@ -87,27 +92,99 @@ const libp2pBundle = opts => {
     });
 };
 
-export default {
-    repo: os.homedir() + "/.ipfs",
-    pass: "01234567890123456789",
-    preload: { enabled: false },
-    config: {
-        Addresses: {
-            Swarm: [
-                "/ip4/0.0.0.0/tcp/4012",
-                "/ip4/127.0.0.1/tcp/4013/ws",
-                "/dns4/xxx/tcp/9090/ws/p2p-webrtc-star"
-            ],
-            API: "/ip4/127.0.0.1/tcp/5012",
-            Gateway: "/ip4/127.0.0.1/tcp/9191"
+/**
+ * This is the bundle we will use to create our fully customized libp2p bundle.
+ *
+ * @param {libp2pBundle~options} opts The options to use when generating the libp2p node
+ * @returns {Libp2p} Our new libp2p node
+ */
+const libp2pBrowserBundle = opts => {
+    // Set convenience variables to clearly showcase some of the useful things that are available
+    console.log("tiii");
+    const peerInfo = opts.peerInfo;
+
+    const multiaddr = require("multiaddr");
+
+    peerInfo.multiaddrs.forEach(ma => {
+        peerInfo.multiaddrs.replace(ma, new multiaddr(ma.toString()));
+    });
+    const peerBook = opts.peerBook;
+    const bootstrapList = opts.config.Bootstrap;
+
+    return new Libp2p({
+        peerInfo,
+        peerBook,
+        // Lets limit the connection managers peers and have it check peer health less frequently
+        connectionManager: {
+            minPeers: 25,
+            maxPeers: 100,
+            pollInterval: 5000
+        },
+        modules: {
+            connProtector: new Protector(`/key/swarm/psk/1.0.0/
+/base16/
+30734f1804abb36a803d0e9f1a31ffe5851b6df1445bf23f96fd3fe8fbc9e793`),
+            transport: [WS, WebRTCStar],
+            streamMuxer: [MPLEX],
+            connEncryption: [SECIO]
+        },
+        config: {
+            peerDiscovery: {
+                webRTCStar: {
+                    enabled: true
+                }
+            }
         }
-    },
-    ipld: {
-        formats: [cbor, require("ipld-dag-pb")]
-    },
-    connectionManager: {
-        minPeers: 1,
-        maxPeers: 50
-    },
-    libp2p: libp2pBundle
+    });
 };
+
+export async function randomPortsConfigAsync() {
+    return {
+        config: {
+            Addresses: {
+                Swarm: [
+                    "/ip4/0.0.0.0/tcp/" + (await getPort()),
+                    "/ip4/127.0.0.1/tcp/" + (await getPort()) + "/ws",
+                    "/dns4/xxx/tcp/9090/ws/p2p-webrtc-star"
+                ],
+                API: "/ip4/127.0.0.1/tcp/" + (await getPort()),
+                Gateway: "/ip4/127.0.0.1/tcp/" + (await getPort())
+            }
+        }
+    };
+}
+
+export async function browserConfigAsync() {
+    return {
+        repo: "ipfs-" + Math.random(),
+        pass: "01234567890123456789",
+        preload: { enabled: false },
+        config: {
+            Addresses: {
+                Swarm: [
+                    // This is a public webrtc-star server
+                    // '/dns4/star-signal.cloud.ipfs.team/wss/p2p-webrtc-star'
+                    "/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star"
+                ]
+            }
+        },
+        ipld: {
+            formats: [cbor, require("ipld-dag-pb")]
+        },
+        libp2p: {
+            modules: {
+                connProtector: new Protector(`/key/swarm/psk/1.0.0/
+/base16/
+30734f1804abb36a803d0e9f1a31ffe5851b6df1445bf23f96fd3fe8fbc9e793`),
+            },
+            config: {
+                peerDiscovery: {
+                    autoDial: true,
+                    webRTCStar: {
+                        enabled: true
+                    }
+                }
+            }
+        }
+    };
+}

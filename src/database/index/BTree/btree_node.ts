@@ -1,15 +1,15 @@
 import { Key, Value, Comparator, Visitor } from "./types";
 import DAG from "@/ipfs/DAG";
 import CID from "cids";
-import { plainToClass, plainToClassFromExist } from "class-transformer";
+import { DEFAULT_COMPARATOR } from './BTree';
 
 export default class BTreeNode<Key, Value> {
     leaf: boolean;
     keys: Array<Key>;
     data: Array<Value>;
     n: number;
-    _C: Array<CID>;
-    // _C: Array<BTreeNode<Key, Value>>
+    // _C: Array<CID>;
+    _C: Array<BTreeNode<Key, Value>>;
 
     constructor(t: number = 0, isLeaf: boolean = false) {
         // Copy the given minimum degree and leaf property
@@ -26,14 +26,21 @@ export default class BTreeNode<Key, Value> {
     }
 
     async getChild(idx: number): Promise<BTreeNode<Key, Value>> {
-        //return this._C[idx];
-        let nodeData = await DAG.GetAsync(this._C[idx]);
-        return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
+        return this._C[idx];
+        // let nodeData = await DAG.GetAsync(this._C[idx]);
+        // let node = new BTreeNode<Key, Value>();
+        // node.leaf = nodeData.leaf;
+        // node.keys = nodeData.keys;
+        // node.data = nodeData.data;
+        // node.n = nodeData.n;
+        // node._C = nodeData._C;
+        // return node;
+        //return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
     }
 
     async setChild(node: BTreeNode<Key, Value>, idx: number): Promise<void> {
-        //this._C[idx] = node;
-        this._C[idx] = await DAG.PutAsync(node);
+        this._C[idx] = node;
+        // this._C[idx] = await DAG.PutAsync(node);
     }
 
     // Function to traverse all nodes in a subtree rooted with this node
@@ -42,7 +49,7 @@ export default class BTreeNode<Key, Value> {
         // and first n children
         const keys = this.keys;
         const data = this.data;
-        let i;
+        let i: number;
         for (i = 0; i < this.n; i++) {
             // If this is not leaf, then before printing key[i],
             // traverse the subtree rooted with child C[i].
@@ -52,6 +59,182 @@ export default class BTreeNode<Key, Value> {
 
         // Print the subtree rooted with last child
         if (!this.leaf) await (await this.getChild(i)).traverse(visitor);
+    }
+
+    async traverseLess(
+        max: Key,
+        visitor: Visitor<Key, Value>,
+        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+    ): Promise<void> {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i: number;
+        for (i = 0; i < this.n && comparator(max, keys[i]) > 0; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                await (await this.getChild(i)).traverseLess(
+                    max,
+                    visitor,
+                    comparator
+                );
+            visitor(keys[i], data[i]);
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            await (await this.getChild(i)).traverseLess(
+                max,
+                visitor,
+                comparator
+            );
+    }
+
+    async traverseGreather(
+        min: Key,
+        visitor: Visitor<Key, Value>,
+        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+    ): Promise<void> {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i = 0;
+        while (i < this.n && comparator(min, keys[i]) >= 0) i++;
+
+        for (; i < this.n; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                await (await this.getChild(i)).traverseGreather(
+                    min,
+                    visitor,
+                    comparator
+                );
+            visitor(keys[i], data[i]);
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            await (await this.getChild(i)).traverseGreather(
+                min,
+                visitor,
+                comparator
+            );
+    }
+
+    async traverseRange(
+        min: Key,
+        max: Key,
+        visitor: Visitor<Key, Value>,
+        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+    ): Promise<void> {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i = 0;
+        while (i < this.n && comparator(min, keys[i]) > 0) i++;
+
+        for (; i < this.n && comparator(max, keys[i]) >= 0; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                await (await this.getChild(i)).traverseRange(
+                    min,
+                    max,
+                    visitor,
+                    comparator
+                );
+            visitor(keys[i], data[i]);
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            await (await this.getChild(i)).traverseRange(
+                min,
+                max,
+                visitor,
+                comparator
+            );
+    }
+
+    async searchGreather(
+        min: Key,
+        comparator: Comparator<Key>
+    ): Promise<BTreeNode<Key, Value>> {
+        if (this.leaf) return this;
+
+        // Find the first key greater than or equal to k
+        let i = this.n - 1;
+        const keys = this.keys;
+
+        while (i > 0 && comparator(min, keys[i]) < 0) i--;
+        i++
+
+        // Go to the appropriate child
+        if (i == this.n) {
+            return await (await this.getChild(i)).searchGreather(
+                min,
+                comparator
+            );
+        } else {
+            // this node is subtree of range
+            return this;
+        }
+    }
+
+    async searchLess(
+        max: Key,
+        comparator: Comparator<Key>
+    ): Promise<BTreeNode<Key, Value>> {
+        if (this.leaf) return this;
+
+        // Find the first key greater than or equal to k
+        let i = 0;
+        const keys = this.keys;
+        while (i < this.n && comparator(max, keys[i]) > 0) i++;
+
+        // Go to the appropriate child
+        if (i == 0) {
+            return await (await this.getChild(i)).searchLess(max, comparator);
+        } else {
+            // this node is subtree of range
+            return this;
+        }
+    }
+
+    // Function to search key k in subtree rooted with this node
+    async searchRange(
+        min: Key,
+        max: Key,
+        comparator: Comparator<Key>
+    ): Promise<BTreeNode<Key, Value>> {
+        if (this.leaf) return this;
+
+        // Find the first key greater than or equal to k
+        let i = 0;
+        let j = this.n - 1;
+        const keys = this.keys;
+        while (i < this.n && comparator(min, keys[i]) > 0) i++;
+        while (j > 0 && comparator(max, keys[j]) < 0) j--;
+
+        // Go to the appropriate child
+        if (i == j + 1) {
+            return await (await this.getChild(i)).searchRange(
+                min,
+                max,
+                comparator
+            );
+        } else {
+            // this node is subtree of range
+            return this;
+        }
     }
 
     // Function to search key k in subtree rooted with this node
@@ -90,7 +273,7 @@ export default class BTreeNode<Key, Value> {
         value: Value,
         comparator: Comparator<Key>,
         t: number
-    ): Promise<void> {
+    ): Promise<BTreeNode<Key, Value>> {
         // Initialize index as index of rightmost element
         let i = this.n - 1;
         const keys = this.keys;
@@ -125,8 +308,17 @@ export default class BTreeNode<Key, Value> {
                 // is going to have the new key
                 if (comparator(keys[i + 1], k) < 0) i++;
             }
-            await (await this.getChild(i + 1)).insertNonFull(k, value, comparator, t);
+            await this.setChild(
+                await (await this.getChild(i + 1)).insertNonFull(
+                    k,
+                    value,
+                    comparator,
+                    t
+                ),
+                i + 1
+            );
         }
+        return this;
     }
 
     // A utility function to split the child y of this node
@@ -148,12 +340,17 @@ export default class BTreeNode<Key, Value> {
 
         // Copy the last t children of y to z
         if (!y.leaf) {
-            for (let j = 0; j < t; j++)
+            for (let j = 0; j < t; j++) {
                 await z.setChild(await y.getChild(j + t), j);
+                await y.setChild(undefined, j + t);
+            }
         }
 
         // Reduce the number of keys in y
         y.n = t - 1;
+        y.data.fill(undefined, t);
+        y.keys.fill(undefined, t);
+        await this.setChild(y, i);
 
         // Since this node is going to have a new child,
         // create space of new child
@@ -331,7 +528,7 @@ export default class BTreeNode<Key, Value> {
         // If C[idx] is not a leaf, move all its child pointers one step ahead
         if (!child.leaf) {
             for (let i = child.n; i >= 0; i--)
-                await child.setChild(await child.getChild(i), i + 1)
+                await child.setChild(await child.getChild(i), i + 1);
         }
 
         // Setting child's first key equal to keys[idx-1] from the current node

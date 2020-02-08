@@ -1,29 +1,25 @@
 import "reflect-metadata";
 import logger from "@/logger";
 import { Block } from "@/models/Block";
-import { BPlusTree } from "@/database/index/bTree/BTree";
 import IndexStore from "@/database/DAL/indexes/indexStore";
-import { container } from "tsyringe";
-import LocalBTreeChildren from "@/database/index/bTree/local/LocalBTreeChildren";
+
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
+import BTree from "@/database/index/bTree/BTree";
 
 logger.silent = true;
 
 describe("query", function() {
     beforeAll(async () => {
         logger.silent = true;
-        container.register("BTreeChildren", {
-            useClass: LocalBTreeChildren
-        });
     });
 
     describe("where", () => {
         it("should find something", async () => {
-            const t = new BPlusTree<number, Block>();
+            const t = new BTree<number, Block>();
             for (let h = 0; h < 1000; h++) {
                 const block = new Block();
                 block.height = h;
-                await t.add(block.height, block);
+                await t.insert(block.height, block);
             }
 
             IndexStore.addIndex("block", "height", t);
@@ -40,11 +36,11 @@ describe("query", function() {
 
     describe("equal", () => {
         it("should find something equal", async () => {
-            const t = new BPlusTree<number, Block>();
+            const t = new BTree<number, Block>();
             for (let h = 0; h < 1000; h++) {
                 const block = new Block();
                 block.height = h;
-                await t.add(block.height, block);
+                await t.insert(block.height, block);
             }
 
             IndexStore.addIndex("block", "height", t);
@@ -59,13 +55,13 @@ describe("query", function() {
 
     describe("comparators", () => {
         it("should find somethin by string key", async () => {
-            const t = new BPlusTree<string, Block>(8);
+            const t = new BTree<string, Block>(8);
 
             const blockGetter = new BlocksGetter(10);
             for await (let b of blockGetter) {
                 const block = new Block(b);
                 //console.log(block);
-                await t.add(b.hash, block);
+                await t.insert(b.hash, block);
             }
 
             IndexStore.addIndex("block", "hash", t);

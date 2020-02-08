@@ -2,17 +2,10 @@
     <div id="app">
         <split-pane :min-percent="20" :default-percent="30" split="vertical">
             <template slot="paneL">
-                <split-pane split="horizontal">
-                    <template slot="paneL" class="panel">
-                        <CodeEditor></CodeEditor>
-                    </template>
-                    <template slot="paneR">
-                        <QueryResult />
-                    </template>
-                </split-pane>
+                <CodeEditor></CodeEditor>
             </template>
             <template slot="paneR">
-                <QueryGraph />
+                <QueryResult />
             </template>
         </split-pane>
     </div>
@@ -22,14 +15,12 @@
 import { Component, Vue } from "vue-property-decorator";
 import splitPane from "vue-splitpane";
 import CodeEditor from "@/components/CodeEditor.vue";
-import QueryGraph from "@/components/QueryGraph.vue";
 import QueryResult from "@/components/QueryResult.vue";
 
 @Component({
     components: {
         "split-pane": splitPane,
         CodeEditor,
-        QueryGraph,
         QueryResult
     }
 })

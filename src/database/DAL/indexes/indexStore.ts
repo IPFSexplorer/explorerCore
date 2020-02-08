@@ -1,12 +1,12 @@
-import { BPlusTree } from "@/database/index/bTree/BTree";
 import logger from "@/logger";
+import BTree from "@/database/index/bTree/BTree";
 
 export default abstract class IndexStore {
     static indexes: {
-        [table: string]: { [property: string]: BPlusTree<any, any> };
+        [table: string]: { [property: string]: BTree<any, any> };
     } = {};
 
-    static getIndex(table: string, property: string): BPlusTree<any, any> {
+    static getIndex(table: string, property: string): BTree<any, any> {
         if (this.indexes[table] === undefined) {
             logger.error("Entity does not exsitss");
             throw "Entity does not exists";
@@ -19,7 +19,7 @@ export default abstract class IndexStore {
     static addIndex(
         table: string,
         property: string,
-        index: BPlusTree<any, any>
+        index: BTree<any, any>
     ): void {
         if (!this.indexes[table]) {
             this.indexes[table] = {};

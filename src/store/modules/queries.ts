@@ -3,7 +3,6 @@ import { delay } from "@/common";
 import CID from "cids";
 import multihashing from "multihashing";
 import { stringify } from "flatted";
-import { Child } from "@/database/index/bTree/Interfaces";
 
 // initial state
 const state = {
@@ -69,7 +68,7 @@ const actions = {
         commit("setNewQuery", query);
         logger.info(query);
     },
-    async addNode({ commit }, child: Child<any, any>) {
+    async addNode({ commit }, child) {
         if (!this.getters.hasQuery) return;
         console.log("start delay");
         await delay(this.getters.getNodeDelay);

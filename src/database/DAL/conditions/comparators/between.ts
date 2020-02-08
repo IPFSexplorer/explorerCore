@@ -1,12 +1,12 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
-import { BPlusTree } from "@/database/index/bTree/BTree";
+import BTree from "@/database/index/bTree/BTree";
 
 export default class between implements IComparator {
     min: any;
     max: any;
     property: any;
-    btree: BPlusTree<any, any>;
+    btree: BTree<any, any>;
     constructor(property, { min, max }, entityName) {
         this.property = property;
         this.min = min;
@@ -18,7 +18,7 @@ export default class between implements IComparator {
         return val > this.min && val < this.max;
     }
 
-    public async getIterator(btree: BPlusTree<any, any>) {
-        return await btree.traverseRight(this.min);
+    public async getIterator(btree: BTree<any, any>) {
+        //return await btree.traverseRight(this.min);
     }
 }

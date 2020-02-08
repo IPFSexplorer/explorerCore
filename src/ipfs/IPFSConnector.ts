@@ -1,11 +1,10 @@
 import IPFStype from "typestub-ipfs";
-import ipfsDefaultConfig from "./ipfsDefaultConfig";
 import logger from "../logger";
 import IPFS from "ipfs";
 
 export default class IPFSconnector {
     private static instance: IPFSconnector;
-    private static config: object = ipfsDefaultConfig;
+    private static config: object = {};
     private _node: any;
 
     static setConfig(config: object) {

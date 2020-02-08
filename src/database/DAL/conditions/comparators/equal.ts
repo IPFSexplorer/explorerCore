@@ -1,11 +1,11 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
-import { BPlusTree } from "@/database/index/bTree/BTree";
+import BTree from "@/database/index/bTree/BTree";
 
 export default class equal implements IComparator {
     value: any;
     property: any;
-    btree: BPlusTree<any, any>;
+    btree: BTree<any, any>;
     constructor(property, value, entityName) {
         this.property = property;
         this.value = value;
@@ -16,26 +16,26 @@ export default class equal implements IComparator {
         return val === this.value;
     }
 
-    public async getIterator(btree: BPlusTree<any, any>) {
-        let val = await btree.find(this.value);
-        let wasCalledFirstTime = true;
-        return {
-            [Symbol.asyncIterator]: () => {
-                return {
-                    next: async () => {
-                        if (val) {
-                            return {
-                                value: val,
-                                done: wasCalledFirstTime = !wasCalledFirstTime
-                            };
-                        } else {
-                            return {
-                                done: true
-                            };
-                        }
-                    }
-                };
-            }
-        };
+    public async getIterator(btree: BTree<any, any>) {
+        // let val = await btree.search(this.value);
+        // let wasCalledFirstTime = true;
+        // return {
+        //     [Symbol.asyncIterator]: () => {
+        //         return {
+        //             next: async () => {
+        //                 if (val) {
+        //                     return {
+        //                         value: val,
+        //                         done: wasCalledFirstTime = !wasCalledFirstTime
+        //                     };
+        //                 } else {
+        //                     return {
+        //                         done: true
+        //                     };
+        //                 }
+        //             }
+        //         };
+        //     }
+        // };
     }
 }

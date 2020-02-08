@@ -1,28 +1,31 @@
-import "reflect-metadata";
 import logger from "@/logger";
 import { Block } from "@/models/Block";
-import { BPlusTree } from "@/database/index/bTree/BTree";
 import IndexStore from "@/database/DAL/indexes/indexStore";
-import { container } from "tsyringe";
-import LocalBTreeChildren from "@/database/index/bTree/local/LocalBTreeChildren";
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
+import BTree from "./database/index/BTree/btree";
+import DAG from "./ipfs/DAG";
+import IPFSconnector from "./ipfs/IPFSConnector";
+import {
+    randomPortsConfigAsync,
+    browserConfigAsync
+} from "./ipfs/ipfsDefaultConfig";
 
-container.register("BTreeChildren", {
-    useClass: LocalBTreeChildren
-});
+const heightIndex = new BTree<number, Block>(4);
+(async function () {
+    let config = await browserConfigAsync();
+    console.log("seyttyt")
+    IPFSconnector.setConfig(config);
+    await (await IPFSconnector.getInstanceAsync()).node.swarm.connect(
+        "/ip4/127.0.0.1/tcp/14003/ws/ipfs/QmR47HUyLiMomYF6iWz1W1XE6XraSUuC7zjVuXQFBotAE7"
+    );
 
-const hashIndex = new BPlusTree<number, Block>(4);
-const heightIndex = new BPlusTree<number, Block>(4);
-(async function() {
-    const blockGetter = new BlocksGetter(10);
+    const blockGetter = new BlocksGetter(100);
+    let i = 1
     for await (let b of blockGetter) {
         const block = new Block(b);
-        await hashIndex.add(b.hash, block);
-        await heightIndex.add(b.height, block);
+        await heightIndex.insert(b.height, block);
+        console.log("inserting " + i++)
     }
 
-    IndexStore.addIndex("block", "hash", hashIndex);
-    IndexStore.addIndex("block", "height", heightIndex);
-    console.log(await hashIndex.print());
-    console.log(await heightIndex.print());
+    logger.info((await DAG.PutAsync(heightIndex.serialize())).toString());
 })();
