@@ -1,6 +1,7 @@
 import PropertyCondition from "../conditions/propertyCondition";
 import IndexStore from "../indexes/indexStore";
-import { Filter } from '../query/types';
+import { Filter } from "../query/types";
+import DAG from "@/ipfs/DAG";
 
 enum ConditionTypes {
     And,
@@ -15,7 +16,8 @@ type QueryPlannerCondition = {
 
 export default class QueryPlanner {
     conditions: QueryPlannerCondition = [];
-    filters: Filter<any>[] = []
+    filters: Filter<any>[] = [];
+    skip: number = 0;
 
     entityName: string;
 
@@ -40,10 +42,72 @@ export default class QueryPlanner {
     }
 
     public addFilter(filter: Filter<any>) {
-        this.filters.push(filter)
+        this.filters.push(filter);
     }
 
-    public async execute() {
+    public async getAll() {
+        const results = [];
+        for await (const res of await this.resolve()) {
+            results.push(res);
+        }
+        return results;
+    }
+
+    public async getFirst() {
+        for await (const res of await this.resolve()) {
+            return res;
+        }
+    }
+
+    public async *paginate(perPage: number = 20) {
+        for await (const res of await this.resolve()) {
+            const page = Array(perPage);
+            for (let i = 0; i < perPage; i++) {
+                page.push(res);
+            }
+            yield page;
+        }
+    }
+
+    public async take(limit: number) {
+        const results = Array(limit);
+        for await (const res of await this.resolve()) {
+            results.push(res);
+            if (results.length === limit) break;
+        }
+        return results;
+    }
+
+    public async *iterate() {
+        yield* this.resolve();
+    }
+
+    private async *resolve() {
+        if (this.conditions.length > 1) {
+            yield* this.multipleConditions();
+        } else {
+            yield* this.singleOrNoCondition();
+        }
+    }
+
+    public async *singleOrNoCondition() {
+        if (this.conditions.length === 0) {
+            // TODO: use primary key
+        } else {
+            const btree = IndexStore.getIndex(
+                this.entityName,
+                this.conditions[0].condition.property
+            );
+
+            for await (const result of await this.conditions[0].condition.comparator.traverse(
+                btree
+            )) {
+                yield* this.filterAndSkip(result);
+            }
+        }
+    }
+
+    public async *multipleConditions() {
         for (const cond of this.conditions) {
             const btree = IndexStore.getIndex(
                 this.entityName,
@@ -63,7 +127,36 @@ export default class QueryPlanner {
         let orResults = this.union(
             this.conditions.filter(cond => cond.type == ConditionTypes.Or)
         );
-        return new Set([...andResults, ...orResults]);
+
+        for (const result of new Set([...andResults, ...orResults])) {
+            yield* this.filterAndSkip(result);
+        }
+    }
+
+    private async *filterAndSkip(result) {
+        let item;
+        if (this.filters.length > 0) {
+            item = await DAG.GetAsync(result);
+            for (const filter of this.filters) {
+                if (!filter(item)) {
+                    return;
+                }
+            }
+
+            if (this.skip > 0) {
+                this.skip = this.skip - 1;
+                return;
+            }
+
+            yield item;
+        } else {
+            if (this.skip > 0) {
+                this.skip = this.skip - 1;
+                return;
+            }
+
+            yield await DAG.GetAsync(result);
+        }
     }
 
     /*

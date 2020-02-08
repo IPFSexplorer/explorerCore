@@ -7,7 +7,7 @@ import BTree from "@/database/index/bTree/BTree";
 
 logger.silent = true;
 
-describe("query", function () {
+describe("query", function() {
     beforeAll(async () => {
         logger.silent = true;
     });
@@ -15,7 +15,7 @@ describe("query", function () {
     describe("where", () => {
         it("should find something", async () => {
             const t = new BTree<number, Block>();
-            for (let h = 0; h < 1000; h++) {
+            for (let h = 0; h < 100; h++) {
                 const block = new Block();
                 block.height = h;
                 await t.insert(block.height, block);
@@ -26,11 +26,9 @@ describe("query", function () {
             const results = await new Block()
                 .where("height")
                 .greatherThan(5)
-                .and("height")
-                .lessThan(10)
                 .all();
             logger.info(results);
-        });
+        }, 36000000);
     });
 
     describe("equal", () => {

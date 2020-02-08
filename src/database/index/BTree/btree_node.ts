@@ -1,7 +1,6 @@
 import { Key, Value, Comparator, Visitor } from "./types";
 import DAG from "@/ipfs/DAG";
 import CID from "cids";
-import { DEFAULT_COMPARATOR } from "./BTree";
 
 export default class BTreeNode<Key, Value> {
     leaf: boolean;
@@ -61,10 +60,36 @@ export default class BTreeNode<Key, Value> {
         if (!this.leaf) await (await this.getChild(i)).traverse(visitor);
     }
 
+    async *generatorLess(max: Key, comparator: Comparator<Key>) {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i: number;
+        for (i = 0; i < this.n && comparator(max, keys[i]) > 0; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                yield* await (await this.getChild(i)).generatorLess(
+                    max,
+                    comparator
+                );
+            yield data[i];
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            yield* await (await this.getChild(i)).generatorLess(
+                max,
+                comparator
+            );
+    }
+
     async traverseLess(
         max: Key,
         visitor: Visitor<Key, Value>,
-        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+        comparator: Comparator<Key>
     ): Promise<void> {
         // There are n keys and n+1 children, travers through n keys
         // and first n children
@@ -93,10 +118,38 @@ export default class BTreeNode<Key, Value> {
             );
     }
 
+    async *generatorGreather(min: Key, comparator: Comparator<Key>) {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i = 0;
+        while (i < this.n && comparator(min, keys[i]) >= 0) i++;
+
+        for (; i < this.n; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                yield* await (await this.getChild(i)).generatorGreather(
+                    min,
+                    comparator
+                );
+            yield data[i];
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            yield* await (await this.getChild(i)).generatorGreather(
+                min,
+                comparator
+            );
+    }
+
     async traverseGreather(
         min: Key,
         visitor: Visitor<Key, Value>,
-        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+        comparator: Comparator<Key>
     ): Promise<void> {
         // There are n keys and n+1 children, travers through n keys
         // and first n children
@@ -127,11 +180,41 @@ export default class BTreeNode<Key, Value> {
             );
     }
 
+    async *generatorRange(min: Key, max: Key, comparator: Comparator<Key>) {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+
+        let i = 0;
+        while (i < this.n && comparator(min, keys[i]) > 0) i++;
+
+        for (; i < this.n && comparator(max, keys[i]) >= 0; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                yield* await (await this.getChild(i)).generatorRange(
+                    min,
+                    max,
+                    comparator
+                );
+            yield data[i];
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            yield* await (await this.getChild(i)).generatorRange(
+                min,
+                max,
+                comparator
+            );
+    }
+
     async traverseRange(
         min: Key,
         max: Key,
         visitor: Visitor<Key, Value>,
-        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+        comparator: Comparator<Key>
     ): Promise<void> {
         // There are n keys and n+1 children, travers through n keys
         // and first n children

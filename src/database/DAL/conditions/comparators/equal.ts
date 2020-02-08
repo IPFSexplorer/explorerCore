@@ -17,25 +17,8 @@ export default class equal implements IComparator {
     }
 
     public async traverse(btree: BTree<any, any>) {
-        // let val = await btree.search(this.value);
-        // let wasCalledFirstTime = true;
-        // return {
-        //     [Symbol.asyncIterator]: () => {
-        //         return {
-        //             next: async () => {
-        //                 if (val) {
-        //                     return {
-        //                         value: val,
-        //                         done: wasCalledFirstTime = !wasCalledFirstTime
-        //                     };
-        //                 } else {
-        //                     return {
-        //                         done: true
-        //                     };
-        //                 }
-        //             }
-        //         };
-        //     }
-        // };
+        return async function*() {
+            yield await btree.get(this.value);
+        };
     }
 }

@@ -9,13 +9,14 @@
 import { Component, Prop, Vue } from "vue-property-decorator";
 
 @Component({
-    components: {}
-})
-export default class QueryResult extends Vue {
-    get value() {
-        return Array.from(this.$store.getters.result);
+    components: {},
+    data() {
+        return {
+            value: ``
+        };
     }
-}
+})
+export default class QueryResult extends Vue {}
 </script>
 
 <style scoped>

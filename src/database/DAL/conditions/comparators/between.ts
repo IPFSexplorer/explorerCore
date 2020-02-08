@@ -19,6 +19,6 @@ export default class between implements IComparator {
     }
 
     public async traverse(btree: BTree<any, any>) {
-        //return await btree.traverseRight(this.min);
+        return btree.generatorRange(this.min, this.max);
     }
 }

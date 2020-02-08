@@ -2,7 +2,7 @@ import { Comparator, Key, Value, Visitor } from "./types";
 import BTreeNode from "./btree_node";
 import DAG from "@/ipfs/DAG";
 
-export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a - b;
+const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a - b;
 
 export default class BTree<Key, Value> {
     private root?: BTreeNode<Key, Value>;
@@ -13,7 +13,6 @@ export default class BTree<Key, Value> {
         t: number = 8,
         comparator: Comparator<Key> = DEFAULT_COMPARATOR
     ) {
-
         this.root = null; // Pointer to root node
         this.t = t; // Minimum degree
         this.comparator = comparator;
@@ -24,7 +23,7 @@ export default class BTree<Key, Value> {
         return this;
     }
 
-    // function to search a key i n  this tre e  
+    // function to search a key i n  this tre e
     async search(k: Key): Promise<BTreeNode<Key, Value>> {
         return this.root === null
             ? null
@@ -49,7 +48,7 @@ export default class BTree<Key, Value> {
             : await this.root.searchLess(max, this.comparator);
     }
 
-    // The main function that inserts a new key   in th i s B-Tree 
+    // The main function that inserts a new key   in th i s B-Tree
     async insert(k: Key, value: Value): Promise<BTree<Key, Value>> {
         const cid = await DAG.PutAsync(value);
 
@@ -147,6 +146,11 @@ export default class BTree<Key, Value> {
         return values;
     }
 
+    async generatorGreather(min: Key) {
+        const subtree = await this.searchGreather(min);
+        return subtree.generatorGreather(min, this.comparator);
+    }
+
     async getLess(max: Key): Promise<Array<Value>> {
         const subtree = await this.searchLess(max);
         const values: Array<Value> = [];
@@ -156,6 +160,11 @@ export default class BTree<Key, Value> {
             this.comparator
         );
         return values;
+    }
+
+    async generatorLess(max: Key) {
+        const subtree = await this.searchLess(max);
+        return subtree.generatorLess(max, this.comparator);
     }
 
     async getRange(min: Key, max: Key): Promise<Array<Value>> {
@@ -168,6 +177,11 @@ export default class BTree<Key, Value> {
             this.comparator
         );
         return values;
+    }
+
+    async generatorRange(min: Key, max: Key) {
+        const subtree = await this.searchRange(min, max);
+        return subtree.generatorRange(min, max, this.comparator);
     }
 
     async get(key: Key): Promise<Value> {

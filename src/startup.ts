@@ -11,7 +11,7 @@ import {
 } from "./ipfs/ipfsDefaultConfig";
 
 const heightIndex = new BTree<number, Block>(4);
-(async function() {
+(async function () {
     let config = await browserConfigAsync();
     console.log("seyttyt");
     IPFSconnector.setConfig(config);
@@ -24,8 +24,9 @@ const heightIndex = new BTree<number, Block>(4);
     for await (let b of blockGetter) {
         const block = new Block(b);
         await heightIndex.insert(b.height, block);
-        console.log("inserting " + i++);
     }
+    IndexStore.addIndex("block", "height", heightIndex);
+    console.log("index sotred")
 
     logger.info((await DAG.PutAsync(heightIndex.serialize())).toString());
 })();

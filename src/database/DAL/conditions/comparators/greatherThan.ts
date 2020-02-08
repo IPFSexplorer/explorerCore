@@ -17,11 +17,6 @@ export default class greatherThan implements IComparator {
     }
 
     public async traverse(btree: BTree<any, any>) {
-        const subtree = await btree.sea(this.value);
-        await subtree.traverseGreather(
-            this.value,
-            (key: Key, value: Value) => values.push(value),
-            btree.comparator
-        );
+        return btree.generatorGreather(this.value);
     }
 }

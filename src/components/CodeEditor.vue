@@ -22,16 +22,13 @@ export default class CodeEditor extends Vue {
     data() {
         return {
             code: `await new this.Block()
-                .where("hash")
-                .equal(
-                    "000000006a906fbef861f23ce8ff5fae146675508fa5ec64817db5c81be04019"
-                )
+                .where("height")
+                .greatherThan(5)
                 .all();`
         };
     }
 
     async runQuery() {
-        this.$store.dispatch("newQuery", this.$data.code);
         console.log(this.$data.code);
         console.log(await this.evalWithContext(this.$data.code));
     }

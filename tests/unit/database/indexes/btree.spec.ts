@@ -6,7 +6,7 @@ import DAG from "@/ipfs/DAG";
 import { randomPortsConfigAsync } from "@/ipfs/ipfsDefaultConfig";
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
 import { Block } from "@/models/Block";
-import CID from 'cids';
+import CID from "cids";
 describe("btree", function () {
     beforeAll(async () => {
         logger.silent = false;
@@ -40,20 +40,6 @@ describe("btree", function () {
                 const block = new Block(b);
                 await heightIndex.insert(b.height, block);
             }
-        });
-
-        it("search range", async () => {
-            const t = new BTree<number, object>(4);
-            for (let i = 0; i <= 100; i++) {
-                await t.insert(i, { ffffuha: i });
-            }
-
-            let results = await t.searchRange(50, 55);
-            let curr = 50;
-            await results.traverseRange(50, 55, (i, v) => {
-                expect(i).toBe(curr);
-                curr++;
-            });
         });
 
         it("get range", async () => {
@@ -98,7 +84,7 @@ describe("btree", function () {
             }
 
             let result = await DAG.GetAsync((await t.get(97)) as CID);
-            expect(result).toStrictEqual({ ffffuha: 97 })
+            expect(result).toStrictEqual({ ffffuha: 97 });
         });
     });
 });
