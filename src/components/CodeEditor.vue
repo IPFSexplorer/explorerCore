@@ -33,10 +33,10 @@ export default class CodeEditor extends Vue {
     async runQuery() {
         this.$store.dispatch("newQuery", this.$data.code);
         console.log(this.$data.code);
-        console.log(await this.evalWithCOntext(this.$data.code));
+        console.log(await this.evalWithContext(this.$data.code));
     }
 
-    evalWithCOntext(code) {
+    evalWithContext(code) {
         return function(code) {
             return eval("(async () => {" + code + "})()");
         }.call(

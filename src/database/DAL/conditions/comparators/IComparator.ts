@@ -3,5 +3,5 @@ import BTree from "@/database/index/bTree/BTree";
 export default interface IComparator {
     property: any;
     test(value: any): boolean;
-    getIterator(btree: BTree<any, any>);
+    traverse(btree: BTree<any, any>);
 }

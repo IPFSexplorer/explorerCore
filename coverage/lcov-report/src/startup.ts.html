@@ -84,7 +84,29 @@
 <a name='L26'></a><a href='#L26'>26</a>
 <a name='L27'></a><a href='#L27'>27</a>
 <a name='L28'></a><a href='#L28'>28</a>
-<a name='L29'></a><a href='#L29'>29</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -93,52 +115,39 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import "reflect-metadata";</span>
-import logger from "@/logger";
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import logger from "@/logger";</span>
 <span class="cstat-no" title="statement not covered" >import { Block } from "@/models/Block";</span>
-<span class="cstat-no" title="statement not covered" >import { BPlusTree } from "@/database/index/bTree/BTree";</span>
-<span class="cstat-no" title="statement not covered" >import IndexStore from "@/database/DAL/indexes/indexStore";</span>
-<span class="cstat-no" title="statement not covered" >import { container } from "tsyringe";</span>
-<span class="cstat-no" title="statement not covered" >import LocalBTreeChildren from "@/database/index/bTree/LocalBTreeChildren";</span>
+import IndexStore from "@/database/DAL/indexes/indexStore";
 <span class="cstat-no" title="statement not covered" >import BlocksGetter from "@/../tests/demoData/BlockGetter";</span>
+<span class="cstat-no" title="statement not covered" >import BTree from "./database/index/BTree/btree";</span>
+<span class="cstat-no" title="statement not covered" >import DAG from "./ipfs/DAG";</span>
+<span class="cstat-no" title="statement not covered" >import IPFSconnector from "./ipfs/IPFSConnector";</span>
+<span class="cstat-no" title="statement not covered" >import {</span>
+    randomPortsConfigAsync,
+    browserConfigAsync
+} from "./ipfs/ipfsDefaultConfig";
 &nbsp;
-<span class="cstat-no" title="statement not covered" >container.r</span>egister("BTreeChildren", {
-    useClass: LocalBTreeChildren
-});
+const heightIndex = <span class="cstat-no" title="statement not covered" >new B</span>Tree&lt;number, Block&gt;(4);
+<span class="cstat-no" title="statement not covered" >(<span class="fstat-no" title="function not covered" >a</span>sync </span>function() {
+    let config = <span class="cstat-no" title="statement not covered" >await browserConfigAsync();</span>
+<span class="cstat-no" title="statement not covered" >    console.</span>log("seyttyt");
+<span class="cstat-no" title="statement not covered" >    IPFSconnector.s</span>etConfig(config);
+<span class="cstat-no" title="statement not covered" >    await (</span>await IPFSconnector.getInstanceAsync()).node.swarm.connect(
+        "/ip4/127.0.0.1/tcp/14003/ws/ipfs/QmR47HUyLiMomYF6iWz1W1XE6XraSUuC7zjVuXQFBotAE7"
+    );
 &nbsp;
-const hashIndex = <span class="cstat-no" title="statement not covered" >new B</span>PlusTree&lt;number, Block&gt;(4);
-const heightIndex = <span class="cstat-no" title="statement not covered" >new B</span>PlusTree&lt;number, Block&gt;(4);
-<span class="cstat-no" title="statement not covered" >(<span class="fstat-no" title="function not covered" >a</span>sync </span>function () {
-    const blockGetter = <span class="cstat-no" title="statement not covered" >new B</span>locksGetter(10);
+    const blockGetter = <span class="cstat-no" title="statement not covered" >new B</span>locksGetter(100);
+    let i = <span class="cstat-no" title="statement not covered" >1;</span>
 <span class="cstat-no" title="statement not covered" >    for await (let b of blockGetter) {</span>
         const block = <span class="cstat-no" title="statement not covered" >new B</span>lock(b);
-<span class="cstat-no" title="statement not covered" >        await h</span>ashIndex.add(b.hash, block);
-<span class="cstat-no" title="statement not covered" >        await h</span>eightIndex.add(b.height, block);
+<span class="cstat-no" title="statement not covered" >        await h</span>eightIndex.insert(b.height, block);
+<span class="cstat-no" title="statement not covered" >        console.</span>log("inserting " + i++);
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    IndexStore.a</span>ddIndex("block", "hash", hashIndex);
-<span class="cstat-no" title="statement not covered" >    IndexStore.a</span>ddIndex("block", "height", heightIndex);
-<span class="cstat-no" title="statement not covered" >    console.</span>log(await hashIndex.print())
-<span class="cstat-no" title="statement not covered" >    console.</span>log(await heightIndex.print())
+<span class="cstat-no" title="statement not covered" >    logger.i</span>nfo((await DAG.PutAsync(heightIndex.serialize())).toString());
 })();
 &nbsp;</pre></td></tr></table></pre>
 
@@ -147,7 +156,7 @@ const heightIndex = <span class="cstat-no" title="statement not covered" >new B<
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank">istanbul</a>
-                at Mon Feb 03 2020 14:46:42 GMT+0100 (GMT+01:00)
+                at Sat Feb 08 2020 17:44:59 GMT+0100 (GMT+01:00)
             </div>
         </div>
         <script src="..\prettify.js"></script>

@@ -1,6 +1,7 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
+import { Filter } from './types';
 
 export default class Queriable<T> extends BaseQuery<T> {
     private entityName: string;
@@ -20,6 +21,9 @@ export default class Queriable<T> extends BaseQuery<T> {
             this.queryPlanner.addAndCondition(whereCondition);
             return whereCondition;
         }
-        // TODO handle nested
+    }
+
+    public filter(filter: Filter<T>) {
+        this.queryPlanner.addFilter(filter)
     }
 }

@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import logger from "@/logger";
 import { Block } from "@/models/Block";
 import IndexStore from "@/database/DAL/indexes/indexStore";
@@ -8,7 +7,7 @@ import BTree from "@/database/index/bTree/BTree";
 
 logger.silent = true;
 
-describe("query", function() {
+describe("query", function () {
     beforeAll(async () => {
         logger.silent = true;
     });

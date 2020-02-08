@@ -1,5 +1,6 @@
 import PropertyCondition from "../conditions/propertyCondition";
 import IndexStore from "../indexes/indexStore";
+import { Filter } from '../query/types';
 
 enum ConditionTypes {
     And,
@@ -14,6 +15,7 @@ type QueryPlannerCondition = {
 
 export default class QueryPlanner {
     conditions: QueryPlannerCondition = [];
+    filters: Filter<any>[] = []
 
     entityName: string;
 
@@ -37,6 +39,10 @@ export default class QueryPlanner {
         });
     }
 
+    public addFilter(filter: Filter<any>) {
+        this.filters.push(filter)
+    }
+
     public async execute() {
         for (const cond of this.conditions) {
             const btree = IndexStore.getIndex(
@@ -44,7 +50,7 @@ export default class QueryPlanner {
                 cond.condition.property
             );
 
-            for await (const result of await cond.condition.comparator.getIterator(
+            for await (const result of await cond.condition.comparator.traverse(
                 btree
             )) {
                 cond.results.add(result);
@@ -97,7 +103,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function*() {
+            (function* () {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

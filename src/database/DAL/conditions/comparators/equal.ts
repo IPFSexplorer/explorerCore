@@ -16,7 +16,7 @@ export default class equal implements IComparator {
         return val === this.value;
     }
 
-    public async getIterator(btree: BTree<any, any>) {
+    public async traverse(btree: BTree<any, any>) {
         // let val = await btree.search(this.value);
         // let wasCalledFirstTime = true;
         // return {

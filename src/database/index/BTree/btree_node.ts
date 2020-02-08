@@ -1,15 +1,15 @@
 import { Key, Value, Comparator, Visitor } from "./types";
 import DAG from "@/ipfs/DAG";
 import CID from "cids";
-import { DEFAULT_COMPARATOR } from './BTree';
+import { DEFAULT_COMPARATOR } from "./BTree";
 
 export default class BTreeNode<Key, Value> {
     leaf: boolean;
     keys: Array<Key>;
     data: Array<Value>;
     n: number;
-    // _C: Array<CID>;
-    _C: Array<BTreeNode<Key, Value>>;
+    _C: Array<CID>;
+    // _C: Array<BTreeNode<Key, Value>>;
 
     constructor(t: number = 0, isLeaf: boolean = false) {
         // Copy the given minimum degree and leaf property
@@ -26,21 +26,21 @@ export default class BTreeNode<Key, Value> {
     }
 
     async getChild(idx: number): Promise<BTreeNode<Key, Value>> {
-        return this._C[idx];
-        // let nodeData = await DAG.GetAsync(this._C[idx]);
-        // let node = new BTreeNode<Key, Value>();
-        // node.leaf = nodeData.leaf;
-        // node.keys = nodeData.keys;
-        // node.data = nodeData.data;
-        // node.n = nodeData.n;
-        // node._C = nodeData._C;
-        // return node;
+        //return this._C[idx];
+        let nodeData = await DAG.GetAsync(this._C[idx]);
+        let node = new BTreeNode<Key, Value>();
+        node.leaf = nodeData.leaf;
+        node.keys = nodeData.keys;
+        node.data = nodeData.data;
+        node.n = nodeData.n;
+        node._C = nodeData._C;
+        return node;
         //return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
     }
 
     async setChild(node: BTreeNode<Key, Value>, idx: number): Promise<void> {
-        this._C[idx] = node;
-        // this._C[idx] = await DAG.PutAsync(node);
+        //this._C[idx] = node;
+        this._C[idx] = await DAG.PutAsync(node);
     }
 
     // Function to traverse all nodes in a subtree rooted with this node
@@ -175,7 +175,7 @@ export default class BTreeNode<Key, Value> {
         const keys = this.keys;
 
         while (i > 0 && comparator(min, keys[i]) < 0) i--;
-        i++
+        i++;
 
         // Go to the appropriate child
         if (i == this.n) {

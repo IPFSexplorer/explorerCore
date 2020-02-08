@@ -18,7 +18,7 @@ export default class between implements IComparator {
         return val > this.min && val < this.max;
     }
 
-    public async getIterator(btree: BTree<any, any>) {
+    public async traverse(btree: BTree<any, any>) {
         //return await btree.traverseRight(this.min);
     }
 }

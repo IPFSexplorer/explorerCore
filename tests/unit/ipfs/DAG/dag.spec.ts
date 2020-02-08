@@ -1,11 +1,15 @@
 import IPFSconnector from "@/ipfs/IPFSConnector";
 import logger from "@/logger";
+import { randomPortsConfigAsync } from '@/ipfs/ipfsDefaultConfig';
 
 logger.silent = true;
 
-describe("dag", function() {
+describe("dag", function () {
     beforeEach(async () => {
+        let config = await randomPortsConfigAsync();
+        logger.info(JSON.stringify(config.config.Addresses));
         IPFSconnector.setConfig({
+            ...config,
             repo: "/.ipfsDagTests"
         });
         return await IPFSconnector.getInstanceAsync();
