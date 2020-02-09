@@ -27,7 +27,12 @@ export default class Queriable<T> extends BaseQuery<T> {
     public async save(): Promise<void> {
         const indexes = IndexStore.getIndexesForEntity(this.entityName);
         for (const key in indexes) {
-            await indexes[key].save(this);
+            IndexStore.updateIndex(
+                this.entityName,
+                key,
+                await indexes[key].save(this)
+            );
         }
+        await IndexStore.publish()
     }
 }

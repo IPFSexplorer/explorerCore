@@ -1,6 +1,8 @@
+/* eslint-disable prettier/prettier */
 import IndexStore from "../indexes/indexStore";
-import BTree, { DEFAULT_COMPARATOR } from "@/database/BTree/BTree";
+import BTree, { DEFAULT_COMPARATOR, DEFAULT_KEY_GETTER } from "@/database/BTree/BTree";
 import { Comparator, KeyGetter } from "@/database/BTree/types";
+import { makeFunctionFromString } from '@/common';
 
 export function Index(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,
@@ -10,7 +12,8 @@ export function Index(
 ) {
     return (target, property) => {
         if (keyGetter === null) {
-            keyGetter = v => v[property];
+            keyGetter = v => v["tmp"];
+            keyGetter = makeFunctionFromString(keyGetter.toString().replace('tmp', property));
         }
 
         IndexStore.addIndex(

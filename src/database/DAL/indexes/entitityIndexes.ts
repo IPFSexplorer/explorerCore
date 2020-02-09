@@ -1,13 +1,10 @@
 import BTree from "@/database/BTree/BTree";
-
 export class EntityIndexes {
     indexes: { [property: string]: BTree<any, any> };
     primaryIndex: string;
-    entityName: string;
 
-    constructor(entityName: string) {
-        this.entityName = entityName;
-        this.indexes = {}
+    constructor() {
+        this.indexes = {};
     }
 
     getIndex(property: string): BTree<any, any> {
@@ -33,5 +30,24 @@ export class EntityIndexes {
 
     setPrimary(property) {
         this.primaryIndex = property;
+    }
+
+    toJSON() {
+        let serializedIndexes = {}
+        for (const key in this.indexes) {
+            serializedIndexes[key] = this.indexes[key].toJSON()
+        }
+        return {
+            indexes: serializedIndexes,
+            primaryIndex: this.primaryIndex
+        }
+    }
+
+    fromJSON(data: any): EntityIndexes {
+        for (const key in data.indexes) {
+            this.indexes[key] = new BTree().fromJSON(data.indexes[key])
+        }
+        this.primaryIndex = data.primaryIndex
+        return this
     }
 }

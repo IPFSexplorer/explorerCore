@@ -9,11 +9,7 @@ export class Block extends Queriable<Block> {
     previousBlockHash;
     nextBlockHash;
 
-    @Index(
-        (a, b) => a - b,
-        h => h * 2,
-        32
-    )
+    @Index()
     height;
 
     confirmations;

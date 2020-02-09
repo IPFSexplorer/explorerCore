@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import logger from "@/logger";
 import { Block } from "@/models/Block";
 import IndexStore from "@/database/DAL/indexes/indexStore";
@@ -53,9 +54,10 @@ describe("query", function () {
     describe("comparators", () => {
         it("should find somethin by string key", async () => {
             const blockGetter = new BlocksGetter(10);
+            await IndexStore.startSync()
             for await (let b of blockGetter) {
                 const block = new Block(b);
-                await block.save()
+                await block.save();
             }
 
             const results = await new Block()

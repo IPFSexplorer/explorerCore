@@ -30,6 +30,11 @@ export async function browserConfigAsync() {
                     // '/dns4/star-signal.cloud.ipfs.team/wss/p2p-webrtc-star'
                     "/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star"
                 ]
+            },
+            pubsub: {
+                enabled: true,
+                signMessages: false,
+                strictSigning: false
             }
         },
         ipld: {
