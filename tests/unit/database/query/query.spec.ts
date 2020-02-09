@@ -3,7 +3,7 @@ import { Block } from "@/models/Block";
 import IndexStore from "@/database/DAL/indexes/indexStore";
 
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
-import BTree from "@/database/index/bTree/BTree";
+import BTree from "@/database/BTree/BTree";
 
 logger.silent = true;
 
@@ -28,7 +28,7 @@ describe("query", function() {
                 .greatherThan(5)
                 .all();
             logger.info(results);
-        }, 36000000);
+        });
     });
 
     describe("equal", () => {
@@ -58,16 +58,15 @@ describe("query", function() {
             for await (let b of blockGetter) {
                 const block = new Block(b);
                 //console.log(block);
-                await t.insert(b.hash, block);
+                await t.insert(b.height, block);
             }
 
-            IndexStore.addIndex("block", "hash", t);
+            IndexStore.addIndex("block", "height", t);
 
             const results = await new Block()
-                .where("hash")
-                .equal(
-                    "000000006a906fbef861f23ce8ff5fae146675508fa5ec64817db5c81be04019"
-                )
+                .where("height")
+                .greatherThan(5)
+                .filter((b: Block) => b.size > 320)
                 .all();
             logger.info(results);
         });

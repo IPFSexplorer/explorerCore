@@ -21,7 +21,7 @@ import { Block } from "../models/Block";
 export default class CodeEditor extends Vue {
     data() {
         return {
-            code: `await new this.Block()
+            code: `return await new this.Block()
                 .where("height")
                 .greatherThan(5)
                 .all();`

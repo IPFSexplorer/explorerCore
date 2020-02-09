@@ -1,5 +1,5 @@
 import logger from "@/logger";
-import BTree from "@/database/index/BTree/btree";
+import BTree from "@/database/BTree/btree";
 import IPFSconnector from "@/ipfs/IPFSConnector";
 import { delay } from "@/common";
 import DAG from "@/ipfs/DAG";
@@ -7,7 +7,7 @@ import { randomPortsConfigAsync } from "@/ipfs/ipfsDefaultConfig";
 import BlocksGetter from "@/../tests/demoData/BlockGetter";
 import { Block } from "@/models/Block";
 import CID from "cids";
-describe("btree", function () {
+describe("btree", function() {
     beforeAll(async () => {
         logger.silent = false;
     });

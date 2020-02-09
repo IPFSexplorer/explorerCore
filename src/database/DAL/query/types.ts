@@ -1,1 +1,1 @@
-export type Filter<Value> = (value: Value) => boolean;
+export type Filter<E> = (value: E) => boolean;

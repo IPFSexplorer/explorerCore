@@ -1,4 +1,4 @@
-import BTree from "@/database/index/bTree/BTree";
+import BTree from "@/database/BTree/BTree";
 
 export default interface IComparator {
     property: any;

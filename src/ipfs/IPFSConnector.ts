@@ -13,6 +13,7 @@ export default class IPFSconnector {
 
     static async getInstanceAsync() {
         if (!IPFSconnector.instance) {
+            console.log("connectyiong");
             IPFSconnector.instance = new IPFSconnector();
 
             IPFSconnector.instance._node = await IPFS.create(

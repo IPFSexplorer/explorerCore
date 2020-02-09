@@ -1,21 +1,26 @@
-import { Comparator, Key, Value, Visitor } from "./types";
+import { Comparator, Key, Value, Visitor, KeyGetter } from "./types";
 import BTreeNode from "./btree_node";
 import DAG from "@/ipfs/DAG";
 
-const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a - b;
+export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a - b;
+export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {
     private root?: BTreeNode<Key, Value>;
     private t: number;
     public comparator: Comparator<Key>;
+    public keyGetter: KeyGetter<Value, Key>;
+    private size: number;
 
     constructor(
         t: number = 8,
-        comparator: Comparator<Key> = DEFAULT_COMPARATOR
+        comparator: Comparator<Key> = DEFAULT_COMPARATOR,
+        keyGetter: KeyGetter<Value, Key> = DEFAULT_KEY_GETTER
     ) {
         this.root = null; // Pointer to root node
         this.t = t; // Minimum degree
         this.comparator = comparator;
+        this.size = 0;
     }
 
     async traverse(visitor: Visitor<Key, Value>): Promise<BTree<Key, Value>> {

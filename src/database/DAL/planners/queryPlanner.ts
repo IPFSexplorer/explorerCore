@@ -60,17 +60,18 @@ export default class QueryPlanner {
     }
 
     public async *paginate(perPage: number = 20) {
+        let page = [];
         for await (const res of await this.resolve()) {
-            const page = Array(perPage);
-            for (let i = 0; i < perPage; i++) {
-                page.push(res);
+            page.push(res);
+            if (page.length === perPage) {
+                yield page;
+                page = [];
             }
-            yield page;
         }
     }
 
     public async take(limit: number) {
-        const results = Array(limit);
+        const results = [];
         for await (const res of await this.resolve()) {
             results.push(res);
             if (results.length === limit) break;
@@ -196,7 +197,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function* () {
+            (function*() {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

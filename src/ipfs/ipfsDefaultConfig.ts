@@ -2,8 +2,6 @@ import Protector from "libp2p-pnet";
 import cbor from "ipld-dag-cbor";
 import getPort from "get-port";
 
-
-
 export async function randomPortsConfigAsync() {
     return {
         config: {

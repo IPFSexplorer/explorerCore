@@ -1,5 +1,6 @@
 import IndexStore from "../indexes/indexStore";
 import QueryPlanner from "../planners/queryPlanner";
+import { Filter } from "./types";
 
 export default class BaseQuery<T> {
     protected queryPlanner: QueryPlanner;
@@ -12,7 +13,8 @@ export default class BaseQuery<T> {
         return await this.queryPlanner.getFirst();
     }
 
-    public async skip(skip: number) {
+    public skip(skip: number) {
+        console.log("set skip");
         this.queryPlanner.skip = skip;
         return this;
     }
@@ -27,5 +29,10 @@ export default class BaseQuery<T> {
 
     public async iterate() {
         return this.queryPlanner.iterate();
+    }
+
+    public filter(filter: Filter<T>) {
+        this.queryPlanner.addFilter(filter);
+        return this;
     }
 }

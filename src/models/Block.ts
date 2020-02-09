@@ -1,7 +1,10 @@
 import Queriable from "@/database/DAL/query/startQuery";
+import { PrimaryKey } from "@/database/DAL/decorators/primaryKey";
 
 export class Block extends Queriable<Block> {
+    @PrimaryKey()
     hash;
+
     previousBlockHash;
     nextBlockHash;
     height;

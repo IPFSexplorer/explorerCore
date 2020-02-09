@@ -22,8 +22,4 @@ export default class Queriable<T> extends BaseQuery<T> {
             return whereCondition;
         }
     }
-
-    public filter(filter: Filter<T>) {
-        this.queryPlanner.addFilter(filter);
-    }
 }
