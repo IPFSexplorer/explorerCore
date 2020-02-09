@@ -1,4 +1,3 @@
-
 import CID from "cids";
 import logger from "../../../../src/logger";
 import { randomPortsConfigAsync } from "../../../../src/ipfs/ipfsDefaultConfig";
@@ -7,7 +6,7 @@ import BTree from "../../../../src/database/BTree/btree";
 import BlocksGetter from "../../../demoData/BlockGetter";
 import { Block } from "../../../../src/models/Block";
 import DAG from "../../../../src/ipfs/DAG";
-describe("btree", function () {
+describe("btree", function() {
     beforeAll(async () => {
         logger.silent = false;
     });

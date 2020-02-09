@@ -32,6 +32,6 @@ export default class Queriable<T> extends BaseQuery<T> {
                 await indexes[key].save(this)
             );
         }
-        return await IndexStore.publish()
+        return await IndexStore.publish();
     }
 }

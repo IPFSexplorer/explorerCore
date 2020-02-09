@@ -6,7 +6,7 @@ import { Block } from "./models/Block";
 import BlocksGetter from "../tests/demoData/BlockGetter";
 import IndexStore from "./database/DAL/indexes/indexStore";
 const heightIndex = new BTree<number, Block>(4);
-(async function () {
+(async function() {
     let config = await browserConfigAsync();
     console.log("seyttyt");
     IPFSconnector.setConfig(config);

@@ -34,21 +34,21 @@ export class EntityIndexes {
     }
 
     toJSON() {
-        let serializedIndexes = {}
+        let serializedIndexes = {};
         for (const key in this.indexes) {
-            serializedIndexes[key] = this.indexes[key].toJSON()
+            serializedIndexes[key] = this.indexes[key].toJSON();
         }
         return {
             indexes: serializedIndexes,
             primaryIndex: this.primaryIndex
-        }
+        };
     }
 
     fromJSON(data: any): EntityIndexes {
         for (const key in data.indexes) {
-            this.indexes[key] = new BTree().fromJSON(data.indexes[key])
+            this.indexes[key] = new BTree().fromJSON(data.indexes[key]);
         }
-        this.primaryIndex = data.primaryIndex
-        return this
+        this.primaryIndex = data.primaryIndex;
+        return this;
     }
 }

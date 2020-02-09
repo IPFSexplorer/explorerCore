@@ -1,5 +1,4 @@
-
-import CID from 'cids';
+import CID from "cids";
 import Queriable from "../database/DAL/query/startQuery";
 import { PrimaryKey } from "../database/DAL/decorators/primaryKey";
 import { Index } from "../database/DAL/decorators";
@@ -25,7 +24,7 @@ export class Block extends Queriable<Block> {
     difficulty: number;
     @Index()
     txCount: number;
-    txs: CID[]
+    txs: CID[];
 
     constructor(data = null) {
         super("Block");

@@ -1,9 +1,10 @@
-import logger from "../../../../src/logger"; import { randomPortsConfigAsync } from "../../../../src/ipfs/ipfsDefaultConfig"; import IPFSconnector from "../../../../src/ipfs/IPFSConnector";
-
+import logger from "../../../../src/logger";
+import { randomPortsConfigAsync } from "../../../../src/ipfs/ipfsDefaultConfig";
+import IPFSconnector from "../../../../src/ipfs/IPFSConnector";
 
 logger.silent = true;
 
-describe("dag", function () {
+describe("dag", function() {
     beforeEach(async () => {
         let config = await randomPortsConfigAsync();
         logger.info(JSON.stringify(config.config.Addresses));

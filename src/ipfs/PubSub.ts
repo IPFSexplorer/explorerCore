@@ -15,21 +15,21 @@ export default abstract class PubSub {
         }) => {}
     ) {
         const node = await PubSub.getNodeAsync();
-        await node.pubsub.subscribe(topic, handler)
+        await node.pubsub.subscribe(topic, handler);
     }
 
     public static async unsubscribe(topic: string) {
         const node = await PubSub.getNodeAsync();
-        await node.pubsub.unsubscribe(topic)
+        await node.pubsub.unsubscribe(topic);
     }
 
     public static async publish(topic: string, data: any) {
         const node = await PubSub.getNodeAsync();
-        await node.pubsub.publish(topic, data)
+        await node.pubsub.publish(topic, data);
     }
 
     public static async peers(topic: string) {
         const node = await PubSub.getNodeAsync();
-        return await node.pubsub.peers(topic)
+        return await node.pubsub.peers(topic);
     }
 }

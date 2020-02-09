@@ -7,7 +7,7 @@ import BlocksGetter from "../../../demoData/BlockGetter";
 
 logger.silent = true;
 
-describe("query", function () {
+describe("query", function() {
     beforeAll(async () => {
         logger.silent = true;
     });
@@ -53,7 +53,7 @@ describe("query", function () {
     describe("comparators", () => {
         it("should find somethin by string key", async () => {
             const blockGetter = new BlocksGetter(10);
-            await IndexStore.startSync()
+            await IndexStore.startSync();
             for await (let b of blockGetter) {
                 const block = new Block(b);
                 await block.save();

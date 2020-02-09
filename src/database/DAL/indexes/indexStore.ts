@@ -82,7 +82,7 @@ export default abstract class IndexStore {
         }
 
         const newDBRoot = (await DAG.PutAsync(serialized)).toString();
-        logger.info(newDBRoot)
+        logger.info(newDBRoot);
         await PubSub.publish(EXPLORER_TOPIC, newDBRoot);
         return newDBRoot;
     }
