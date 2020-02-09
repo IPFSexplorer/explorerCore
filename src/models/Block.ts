@@ -1,37 +1,30 @@
 import Queriable from "@/database/DAL/query/startQuery";
 import { PrimaryKey } from "@/database/DAL/decorators/primaryKey";
 import { Index } from "@/database/DAL/decorators";
+import CID from 'cids';
 
 export class Block extends Queriable<Block> {
     @PrimaryKey()
-    hash;
+    hash: string;
 
-    previousBlockHash;
-    nextBlockHash;
+    previousBlockHash: string;
+    nextBlockHash: string;
 
-    @Index(
-        (a, b) => a - b,
-        h => h * 2,
-        32
-    )
-    height;
+    @Index()
+    height: number;
 
-    confirmations;
-    size;
-    time;
-    version;
-    merkleRoot;
-    nonce;
-    bits;
-    difficulty;
-    txCount;
-    txs;
-    blockHash;
-    blockHeight;
-    blockTime;
-    value;
-    valueIn;
-    fees;
+    confirmations: number;
+    size: number;
+    @Index()
+    time: number;
+    version: number;
+    merkleRoot: string;
+    nonce: string;
+    bits: string;
+    difficulty: number;
+    @Index()
+    txCount: number;
+    txs: CID[]
 
     constructor(data = null) {
         super("Block");
