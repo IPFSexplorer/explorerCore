@@ -1,4 +1,5 @@
-import logger from "@/logger";
+import logger from "../../src/logger";
+
 
 const MAX_HEIGHT = 100;
 
@@ -11,7 +12,7 @@ export default class BlocksGetter {
 
     public [Symbol.asyncIterator]() {
         return {
-            next: async function() {
+            next: async function () {
                 return {
                     done: this.height > this.maxHeight,
                     value: await this.getBlock(this.height++)

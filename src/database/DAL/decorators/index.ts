@@ -1,8 +1,9 @@
 /* eslint-disable prettier/prettier */
 import IndexStore from "../indexes/indexStore";
-import BTree, { DEFAULT_COMPARATOR, DEFAULT_KEY_GETTER } from "@/database/BTree/BTree";
-import { Comparator, KeyGetter } from "@/database/BTree/types";
-import { makeFunctionFromString } from '@/common';
+import { Comparator, KeyGetter } from "../../BTree/types";
+import BTree, { DEFAULT_COMPARATOR } from "../../BTree/btree";
+import { makeFunctionFromString } from "../../../common";
+
 
 export function Index(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,

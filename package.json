@@ -51,6 +51,7 @@
     },
     "devDependencies": {
         "@types/jest": "^24.9.1",
+        "@types/node-persist": "^3.0.0",
         "@vue/cli-plugin-babel": "^4.2.2",
         "@vue/cli-plugin-eslint": "^4.2.2",
         "@vue/cli-plugin-typescript": "^4.2.2",

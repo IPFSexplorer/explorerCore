@@ -1,7 +1,6 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
-import { Filter } from "./types";
 import IndexStore from "../indexes/indexStore";
 
 export default class Queriable<T> extends BaseQuery<T> {
@@ -33,6 +32,6 @@ export default class Queriable<T> extends BaseQuery<T> {
                 await indexes[key].save(this)
             );
         }
-        await IndexStore.publish()
+        return await IndexStore.publish()
     }
 }

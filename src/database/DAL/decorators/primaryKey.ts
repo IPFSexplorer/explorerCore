@@ -1,7 +1,8 @@
 import IndexStore from "../indexes/indexStore";
-import BTree, { DEFAULT_COMPARATOR, DEFAULT_KEY_GETTER } from "@/database/BTree/BTree";
-import { Comparator, KeyGetter } from "@/database/BTree/types";
+
 import { Index } from ".";
+import { Comparator, KeyGetter } from "../../BTree/types";
+import { DEFAULT_COMPARATOR } from "../../BTree/btree";
 
 export function PrimaryKey(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,

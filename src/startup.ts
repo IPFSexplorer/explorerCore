@@ -1,17 +1,12 @@
-import logger from "@/logger";
-import { Block } from "@/models/Block";
-import IndexStore from "@/database/DAL/indexes/indexStore";
-import BlocksGetter from "@/../tests/demoData/BlockGetter";
 import BTree from "./database/BTree/btree";
 import DAG from "./ipfs/DAG";
 import IPFSconnector from "./ipfs/IPFSConnector";
-import {
-    randomPortsConfigAsync,
-    browserConfigAsync
-} from "./ipfs/ipfsDefaultConfig";
-
+import { browserConfigAsync } from "./ipfs/ipfsDefaultConfig";
+import { Block } from "./models/Block";
+import BlocksGetter from "../tests/demoData/BlockGetter";
+import IndexStore from "./database/DAL/indexes/indexStore";
 const heightIndex = new BTree<number, Block>(4);
-(async function() {
+(async function () {
     let config = await browserConfigAsync();
     console.log("seyttyt");
     IPFSconnector.setConfig(config);
@@ -27,6 +22,4 @@ const heightIndex = new BTree<number, Block>(4);
     }
     IndexStore.addIndex("block", "height", heightIndex);
     console.log("index sotred");
-
-    logger.info((await DAG.PutAsync(heightIndex.serialize())).toString());
 })();

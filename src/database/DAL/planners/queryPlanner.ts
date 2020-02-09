@@ -1,7 +1,8 @@
 import PropertyCondition from "../conditions/propertyCondition";
 import IndexStore from "../indexes/indexStore";
 import { Filter } from "../query/types";
-import DAG from "@/ipfs/DAG";
+import DAG from "../../../ipfs/DAG";
+
 
 enum ConditionTypes {
     And,
@@ -196,7 +197,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function*() {
+            (function* () {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

@@ -1,23 +1,12 @@
 import { Key, Value, Comparator, Visitor } from "./types";
-import DAG from "@/ipfs/DAG";
 import CID from "cids";
-import { JsonObject, JsonProperty, Any } from "json2typescript";
+import DAG from "../../ipfs/DAG";
 
-@JsonObject("BTreeNode")
 export default class BTreeNode<Key, Value> {
-    @JsonProperty("leaf", Boolean)
     leaf: boolean;
-
-    @JsonProperty("keys", [Any])
     keys: Array<Key>;
-
-    @JsonProperty("data", [Any])
     data: Array<Value>;
-
-    @JsonProperty("n", Number)
     n: number;
-
-    @JsonProperty("_C", [CID])
     _C: Array<CID>;
     // _C: Array<BTreeNode<Key, Value>>;
 
@@ -733,5 +722,15 @@ export default class BTreeNode<Key, Value> {
             }
             return h + 1;
         }
+    }
+
+    fromJSON(data: any): BTreeNode<Key, Value> {
+        this.leaf = data.leaf;
+        this.keys = data.keys;
+        this.data = data.data;
+        this.n = data.n;
+        this._C = data._C;
+
+        return this;
     }
 }

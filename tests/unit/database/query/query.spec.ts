@@ -1,10 +1,9 @@
 import "reflect-metadata";
-import logger from "@/logger";
-import { Block } from "@/models/Block";
-import IndexStore from "@/database/DAL/indexes/indexStore";
-
-import BlocksGetter from "@/../tests/demoData/BlockGetter";
-import BTree from "@/database/BTree/BTree";
+import logger from "../../../../src/logger";
+import BTree from "../../../../src/database/BTree/btree";
+import { Block } from "../../../../src/models/Block";
+import IndexStore from "../../../../src/database/DAL/indexes/indexStore";
+import BlocksGetter from "../../../demoData/BlockGetter";
 
 logger.silent = true;
 

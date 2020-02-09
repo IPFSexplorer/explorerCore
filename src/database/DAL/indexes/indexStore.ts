@@ -1,11 +1,10 @@
-import logger from "@/logger";
-import BTree from "@/database/BTree/BTree";
 import { EntityIndexes } from "./entitityIndexes";
-import { delay } from '@/common';
-import DAG from '@/ipfs/DAG';
-import PubSub from '@/ipfs/PubSub';
+import BTree from "../../BTree/btree";
+import logger from "../../../logger";
+import PubSub from "../../../ipfs/PubSub";
+import DAG from "../../../ipfs/DAG";
 
-export const EXPLORER_TOPIC = "explorer_topic"
+export const EXPLORER_TOPIC = "explorer_topic";
 
 export default abstract class IndexStore {
     static entityIndexes: {
@@ -68,7 +67,7 @@ export default abstract class IndexStore {
             [key: string]: EntityIndexes;
         } = await DAG.GetAsync(data.data.toString());
 
-        this.entityIndexes = {}
+        this.entityIndexes = {};
         for (const key in serializedIndexStore) {
             this.entityIndexes[key] = new EntityIndexes().fromJSON(
                 serializedIndexStore[key]
@@ -77,13 +76,14 @@ export default abstract class IndexStore {
     }
 
     static async publish() {
-        let serialized = {}
+        let serialized = {};
         for (const key in this.entityIndexes) {
-            serialized[key] = this.entityIndexes[key].toJSON()
+            serialized[key] = this.entityIndexes[key].toJSON();
         }
-        await PubSub.publish(
-            EXPLORER_TOPIC,
-            (await DAG.PutAsync(serialized)).toString()
-        );
+
+        const newDBRoot = (await DAG.PutAsync(serialized)).toString();
+        logger.info(newDBRoot)
+        await PubSub.publish(EXPLORER_TOPIC, newDBRoot);
+        return newDBRoot;
     }
 }

@@ -1,7 +1,6 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
-import BTree from "@/database/BTree/BTree";
-
+import BTree from "../../../BTree/btree";
 export default class equal implements IComparator {
     value: any;
     property: any;
@@ -17,7 +16,7 @@ export default class equal implements IComparator {
     }
 
     public async traverse(btree: BTree<any, any>) {
-        return async function*() {
+        return async function* () {
             yield await btree.get(this.value);
         };
     }

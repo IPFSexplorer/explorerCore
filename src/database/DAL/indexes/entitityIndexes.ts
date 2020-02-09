@@ -1,4 +1,5 @@
-import BTree from "@/database/BTree/BTree";
+import BTree from "../../BTree/btree";
+
 export class EntityIndexes {
     indexes: { [property: string]: BTree<any, any> };
     primaryIndex: string;

@@ -1,13 +1,13 @@
-import logger from "@/logger";
-import BTree from "@/database/BTree/btree";
-import IPFSconnector from "@/ipfs/IPFSConnector";
-import { delay } from "@/common";
-import DAG from "@/ipfs/DAG";
-import { randomPortsConfigAsync } from "@/ipfs/ipfsDefaultConfig";
-import BlocksGetter from "@/../tests/demoData/BlockGetter";
-import { Block } from "@/models/Block";
+
 import CID from "cids";
-describe("btree", function() {
+import logger from "../../../../src/logger";
+import { randomPortsConfigAsync } from "../../../../src/ipfs/ipfsDefaultConfig";
+import IPFSconnector from "../../../../src/ipfs/IPFSConnector";
+import BTree from "../../../../src/database/BTree/btree";
+import BlocksGetter from "../../../demoData/BlockGetter";
+import { Block } from "../../../../src/models/Block";
+import DAG from "../../../../src/ipfs/DAG";
+describe("btree", function () {
     beforeAll(async () => {
         logger.silent = false;
     });

@@ -1,6 +1,6 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
-import BTree from "@/database/BTree/BTree";
+import BTree from "../../../BTree/btree";
 
 export default class lessThan implements IComparator {
     value: any;

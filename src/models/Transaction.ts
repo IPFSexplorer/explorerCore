@@ -1,6 +1,6 @@
-import Queriable from "@/database/DAL/query/startQuery";
-import { PrimaryKey } from '@/database/DAL/decorators/primaryKey';
-import { Index } from '@/database/DAL/decorators';
+import { PrimaryKey } from "../database/DAL/decorators/primaryKey";
+import Queriable from "../database/DAL/query/startQuery";
+import { Index } from "../database/DAL/decorators";
 
 type vin = [
     {
