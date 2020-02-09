@@ -1,9 +1,10 @@
 import logger from "@/logger";
 import BTree from "@/database/BTree/BTree";
+import { EntityIndexes } from "./entitityIndexes";
 
 export default abstract class IndexStore {
     static indexes: {
-        [table: string]: { [property: string]: BTree<any, any> };
+        [table: string]: EntityIndexes;
     } = {};
 
     static getIndex(table: string, property: string): BTree<any, any> {
@@ -11,17 +12,25 @@ export default abstract class IndexStore {
             logger.error("Entity does not exsits");
             throw "Entity does not exists";
         }
-        if (this.indexes[table][property] !== undefined)
-            return this.indexes[table][property];
-        else return this.indexes[table]["primary"];
+        return this.indexes[table].getIndex(property);
     }
 
-    static getIndexesForEntity(table: string) {
+    static getIndexesForEntity(
+        table: string
+    ): { [property: string]: BTree<any, any> } {
         if (this.indexes[table] === undefined) {
             logger.error("Entity does not exsits");
             throw "Entity does not exists";
         }
-        return this.indexes[table];
+        return this.indexes[table].getIndexes();
+    }
+
+    static updateIndex(
+        table: string,
+        property: string,
+        index: BTree<any, any>
+    ) {
+        this.indexes[table].updateIndex(property, index);
     }
 
     static addIndex(
@@ -31,8 +40,13 @@ export default abstract class IndexStore {
         isPrimary: Boolean = false
     ): void {
         if (!this.indexes[table]) {
-            this.indexes[table] = {};
+            this.indexes[table] = new EntityIndexes(table);
         }
-        this.indexes[table][property] = index;
+
+        this.indexes[table].addIndex(property, index);
+
+        if (isPrimary) {
+            this.indexes[table].setPrimary(property);
+        }
     }
 }

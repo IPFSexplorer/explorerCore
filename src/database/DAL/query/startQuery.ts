@@ -2,6 +2,7 @@ import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
 import { Filter } from "./types";
+import IndexStore from "../indexes/indexStore";
 
 export default class Queriable<T> extends BaseQuery<T> {
     private entityName: string;
@@ -20,6 +21,13 @@ export default class Queriable<T> extends BaseQuery<T> {
             );
             this.queryPlanner.addAndCondition(whereCondition);
             return whereCondition;
+        }
+    }
+
+    public async save(): Promise<void> {
+        const indexes = IndexStore.getIndexesForEntity(this.entityName);
+        for (const key in indexes) {
+            await indexes[key].save(this);
         }
     }
 }

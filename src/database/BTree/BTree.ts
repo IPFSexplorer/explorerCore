@@ -53,6 +53,10 @@ export default class BTree<Key, Value> {
             : await this.root.searchLess(max, this.comparator);
     }
 
+    async save(value: Value): Promise<BTree<Key, Value>> {
+        return await this.insert(this.keyGetter(value), value);
+    }
+
     // The main function that inserts a new key   in th i s B-Tree
     async insert(k: Key, value: Value): Promise<BTree<Key, Value>> {
         const cid = await DAG.PutAsync(value);
