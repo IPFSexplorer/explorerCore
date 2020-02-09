@@ -5,7 +5,8 @@ import { Comparator, KeyGetter } from "@/database/BTree/types";
 export function Index(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,
     keyGetter: KeyGetter<any, any> = null,
-    branching: number = 16
+    branching: number = 16,
+    primary: boolean = false
 ) {
     return (target, property) => {
         if (keyGetter === null) {
@@ -16,7 +17,7 @@ export function Index(
             target.constructor.name,
             property,
             new BTree(branching, comparator, keyGetter),
-            false
+            primary
         );
     };
 }

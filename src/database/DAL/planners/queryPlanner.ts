@@ -92,20 +92,20 @@ export default class QueryPlanner {
     }
 
     public async *singleOrNoCondition() {
-        if (this.conditions.length === 0) {
-            // TODO: use primary key
-        } else {
-            const btree = IndexStore.getIndex(
-                this.entityName,
-                this.conditions[0].condition.property
-            );
+        const btree =
+            this.conditions.length === 0
+                ? IndexStore.getPrimaryIndex(this.entityName)
+                : IndexStore.getIndex(
+                    this.entityName,
+                    this.conditions[0].condition.property
+                );
 
-            for await (const result of await this.conditions[0].condition.comparator.traverse(
-                btree
-            )) {
-                yield* this.filterAndSkip(result);
-            }
+        for await (const result of await this.conditions[0].condition.comparator.traverse(
+            btree
+        )) {
+            yield* this.filterAndSkip(result);
         }
+
     }
 
     public async *multipleConditions() {
@@ -197,7 +197,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function*() {
+            (function* () {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

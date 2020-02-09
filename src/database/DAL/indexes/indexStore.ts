@@ -15,6 +15,10 @@ export default abstract class IndexStore {
         return this.indexes[table].getIndex(property);
     }
 
+    static getPrimaryIndex(table: string) {
+        return this.indexes[table].getPrimaryIndex()
+    }
+
     static getIndexesForEntity(
         table: string
     ): { [property: string]: BTree<any, any> } {

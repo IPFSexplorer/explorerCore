@@ -34,7 +34,7 @@ export class Block extends Queriable<Block> {
     fees;
 
     constructor(data = null) {
-        super("block");
+        super("Block");
         if (data) {
             for (let key in data) {
                 this[key] = data[key];

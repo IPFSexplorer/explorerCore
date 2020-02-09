@@ -20,6 +20,7 @@ export default class BTree<Key, Value> {
         this.root = null; // Pointer to root node
         this.t = t; // Minimum degree
         this.comparator = comparator;
+        this.keyGetter = keyGetter;
         this.size = 0;
     }
 

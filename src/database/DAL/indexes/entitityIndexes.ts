@@ -7,6 +7,7 @@ export class EntityIndexes {
 
     constructor(entityName: string) {
         this.entityName = entityName;
+        this.indexes = {}
     }
 
     getIndex(property: string): BTree<any, any> {

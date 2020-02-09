@@ -7,7 +7,7 @@ import BTree from "@/database/BTree/BTree";
 
 logger.silent = true;
 
-describe("query", function() {
+describe("query", function () {
     beforeAll(async () => {
         logger.silent = true;
     });
@@ -52,23 +52,17 @@ describe("query", function() {
 
     describe("comparators", () => {
         it("should find somethin by string key", async () => {
-            const t = new BTree<string, Block>(8);
-
             const blockGetter = new BlocksGetter(10);
             for await (let b of blockGetter) {
                 const block = new Block(b);
-                //console.log(block);
-                await t.insert(b.height, block);
+                await block.save()
             }
-
-            IndexStore.addIndex("block", "height", t);
 
             const results = await new Block()
                 .where("height")
                 .greatherThan(5)
-                .filter((b: Block) => b.size > 320)
                 .all();
             logger.info(results);
-        });
+        }, 36000000);
     });
 });
