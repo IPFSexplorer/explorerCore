@@ -105,7 +105,6 @@ export default class QueryPlanner {
         )) {
             yield* this.filterAndSkip(result);
         }
-
     }
 
     public async *multipleConditions() {
@@ -197,7 +196,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function* () {
+            (function*() {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

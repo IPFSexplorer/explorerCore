@@ -9,7 +9,6 @@
         "resolveJsonModule": true,
         "moduleResolution": "node",
         "experimentalDecorators": true,
-        "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "baseUrl": ".",
@@ -17,7 +16,14 @@
         "paths": {
             "@/*": ["src/*"]
         },
-        "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
+        "lib": [
+            "esnext",
+            "dom",
+            "dom.iterable",
+            "scripthost",
+            "es2015",
+            "es2017"
+        ]
     },
     "include": [
         "src/**/*.ts",

@@ -1,15 +1,20 @@
 import { Comparator, Key, Value, Visitor, KeyGetter } from "./types";
 import BTreeNode from "./btree_node";
 import DAG from "@/ipfs/DAG";
+import { makeFunctionFromString } from '@/common';
 
 export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a - b;
 export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {
     private root?: BTreeNode<Key, Value>;
+
     private t: number;
+
     public comparator: Comparator<Key>;
+
     public keyGetter: KeyGetter<Value, Key>;
+
     private size: number;
 
     constructor(
@@ -105,6 +110,7 @@ export default class BTree<Key, Value> {
                 this.root = await root.insertNonFull(k, cid, comparator, t);
             }
         }
+        this.size++;
         return this;
     }
 
@@ -199,11 +205,23 @@ export default class BTree<Key, Value> {
         return leaf.data[leaf.findKey(key, this.comparator)];
     }
 
-    serialize() {
+    toJSON() {
         return {
             root: this.root,
             t: this.t,
-            comparator: this.comparator.toString()
-        };
+            comparator: this.comparator.toString(),
+            keyGetter: this.keyGetter.toString(),
+            size: this.size
+        }
+    }
+
+    fromJSON(data: any): BTree<any, any> {
+        this.root = data.root
+        this.t = data.t
+        this.comparator = makeFunctionFromString(data.comparator)
+        this.keyGetter = makeFunctionFromString(data.keyGetter)
+        this.size = data.size
+
+        return this
     }
 }
