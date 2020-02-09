@@ -1,4 +1,4 @@
-import BTree from "../../BTree/btree";
+import BTree from "../../BTree/BTree";
 
 export class EntityIndexes {
     indexes: { [property: string]: BTree<any, any> };
@@ -9,7 +9,7 @@ export class EntityIndexes {
     }
 
     getIndex(property: string): BTree<any, any> {
-        if (this.indexes[property] !== undefined) return this.getPrimaryIndex();
+        if (this.indexes[property] === undefined) return this.getPrimaryIndex();
         return this.indexes[property];
     }
 
