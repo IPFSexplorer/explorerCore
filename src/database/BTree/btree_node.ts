@@ -43,6 +43,26 @@ export default class BTreeNode<Key, Value> {
     }
 
     // Function to traverse all nodes in a subtree rooted with this node
+    async *generatorTraverse() {
+        // There are n keys and n+1 children, travers through n keys
+        // and first n children
+        const keys = this.keys;
+        const data = this.data;
+        let i: number;
+        for (i = 0; i < this.n; i++) {
+            // If this is not leaf, then before printing key[i],
+            // traverse the subtree rooted with child C[i].
+            if (!this.leaf)
+                yield* await (await this.getChild(i)).generatorTraverse();
+            yield data[i];
+        }
+
+        // Print the subtree rooted with last child
+        if (!this.leaf)
+            yield* await (await this.getChild(i)).generatorTraverse();
+    }
+
+    // Function to traverse all nodes in a subtree rooted with this node
     async traverse(visitor: Visitor<Key, Value>): Promise<void> {
         // There are n keys and n+1 children, travers through n keys
         // and first n children

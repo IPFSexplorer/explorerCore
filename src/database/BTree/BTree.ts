@@ -34,6 +34,10 @@ export default class BTree<Key, Value> {
         return this;
     }
 
+    async generatorTraverse() {
+        return this.root === null ? null : this.root.generatorTraverse();
+    }
+
     // function to search a key i n  this tre e
     async search(k: Key): Promise<BTreeNode<Key, Value>> {
         return this.root === null
