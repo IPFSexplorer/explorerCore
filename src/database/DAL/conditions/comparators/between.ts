@@ -16,7 +16,7 @@ export default class between implements IComparator {
     }
 
     public getFilter(): Filter<any> {
-        return e => e.property > this.min && e.property < this.max;
+        return e => e[this.property] > this.min && e[this.property] < this.max;
     }
 
     public async traverse(btree: BTree<any, any>) {

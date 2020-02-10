@@ -14,7 +14,7 @@ export default class greatherThan implements IComparator {
     }
 
     public getFilter(): Filter<any> {
-        return e => e > this.value;
+        return e => e[this.property] > this.value;
     }
 
     public async traverse(btree: BTree<any, any>) {
