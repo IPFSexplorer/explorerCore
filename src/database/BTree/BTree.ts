@@ -3,7 +3,8 @@ import BTreeNode from "./btree_node";
 import DAG from "../../ipfs/DAG";
 import { makeFunctionFromString } from "../../common";
 
-export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) => a < b ? -1 : +(a > b);
+export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) =>
+    a < b ? -1 : +(a > b);
 export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {

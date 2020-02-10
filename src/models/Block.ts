@@ -2,6 +2,7 @@ import CID from "cids";
 import Queriable from "../database/DAL/query/startQuery";
 import { PrimaryKey } from "../database/DAL/decorators/primaryKey";
 import { Index } from "../database/DAL/decorators";
+import { DEFAULT_COMPARATOR } from "../database/BTree/btree";
 
 export class Block extends Queriable<Block> {
     @PrimaryKey()
@@ -26,11 +27,13 @@ export class Block extends Queriable<Block> {
     txCount: number;
     txs: CID[];
 
-    @Index(null, b => {
-        /* key getter */
-        const day = new Date(b.time * 1000).getDay();
-        return day === 6 || day === 0;
-    })
+    @Index(
+        DEFAULT_COMPARATOR,
+        /* key getter */ b => {
+            const day = new Date(b.time * 1000).getDay();
+            return day === 6 || day === 0;
+        }
+    )
     bol_vytazeny_cez_vikend: boolean;
 
     constructor(data = null) {
