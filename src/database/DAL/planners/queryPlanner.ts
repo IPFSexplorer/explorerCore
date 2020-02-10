@@ -83,25 +83,50 @@ export default class QueryPlanner {
         yield* this.resolve();
     }
 
-    private async *resolve() {
-        if (this.conditions.length > 1) {
-            yield* this.multipleConditions();
-        } else {
-            yield* this.singleOrNoCondition();
+    public conditionsToFilters() {
+        let i = this.conditions.length;
+        while (i--) {
+            if (
+                !IndexStore.exists(
+                    this.entityName,
+                    this.conditions[i].condition.property
+                )
+            ) {
+                this.addFilter(
+                    this.conditions[i].condition.comparator.getFilter()
+                );
+                this.conditions.splice(i, 1);
+            }
         }
     }
 
-    public async *singleOrNoCondition() {
-        const btree =
-            this.conditions.length === 0
-                ? IndexStore.getPrimaryIndex(this.entityName)
-                : IndexStore.getIndex(
-                    this.entityName,
-                    this.conditions[0].condition.property
-                );
+    private async *resolve() {
+        this.conditionsToFilters();
+        if (this.conditions.length === 0) {
+            yield* this.noCondition();
+        } else if (this.conditions.length === 1) {
+            yield* this.singleCondition();
+        } else {
+            yield* this.multipleConditions();
+        }
+    }
+
+    public async *noCondition() {
+        const index = IndexStore.getPrimaryIndex(this.entityName);
+
+        for await (const result of await index.generatorTraverse()) {
+            yield* this.filterAndSkip(result);
+        }
+    }
+
+    public async *singleCondition() {
+        const index = IndexStore.getIndex(
+            this.entityName,
+            this.conditions[0].condition.property
+        );
 
         for await (const result of await this.conditions[0].condition.comparator.traverse(
-            btree
+            index
         )) {
             yield* this.filterAndSkip(result);
         }
@@ -109,13 +134,13 @@ export default class QueryPlanner {
 
     public async *multipleConditions() {
         for (const cond of this.conditions) {
-            const btree = IndexStore.getIndex(
+            const index = IndexStore.getIndex(
                 this.entityName,
                 cond.condition.property
             );
 
             for await (const result of await cond.condition.comparator.traverse(
-                btree
+                index
             )) {
                 cond.results.add(result);
             }
@@ -196,7 +221,7 @@ export default class QueryPlanner {
         //         result.add(element);
 
         return new Set(
-            (function*() {
+            (function* () {
                 for (const cond of conditions) yield* cond.results;
             })()
         );

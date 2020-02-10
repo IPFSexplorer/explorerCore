@@ -8,8 +8,12 @@ export class EntityIndexes {
         this.indexes = {};
     }
 
+    has(property: string): Boolean {
+        return this.indexes.hasOwnProperty(property);
+    }
+
     getIndex(property: string): BTree<any, any> {
-        if (this.indexes[property] === undefined) return this.getPrimaryIndex();
+        if (this.indexes[property] === undefined) return null;
         return this.indexes[property];
     }
 

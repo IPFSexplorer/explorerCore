@@ -1,6 +1,7 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
 import BTree from "../../../BTree/btree";
+import { Filter } from "../../query/types";
 
 export default class between implements IComparator {
     min: any;
@@ -14,8 +15,8 @@ export default class between implements IComparator {
         this.btree = IndexStore.getIndex(entityName, property);
     }
 
-    public test(val: any) {
-        return val > this.min && val < this.max;
+    public getFilter(): Filter<any> {
+        return e => e.property > this.min && e.property < this.max;
     }
 
     public async traverse(btree: BTree<any, any>) {

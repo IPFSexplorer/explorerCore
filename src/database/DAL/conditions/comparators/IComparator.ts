@@ -1,7 +1,8 @@
 import BTree from "../../../BTree/btree";
+import { Filter } from "../../query/types";
 
 export default interface IComparator {
     property: any;
-    test(value: any): boolean;
+    getFilter(): Filter<any>;
     traverse(btree: BTree<any, any>);
 }

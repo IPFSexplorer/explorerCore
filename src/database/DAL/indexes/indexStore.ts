@@ -6,15 +6,21 @@ import DAG from "../../../ipfs/DAG";
 
 export const EXPLORER_TOPIC = "explorer_topic";
 
-
 export default abstract class IndexStore {
     private static entityIndexes: {
         [table: string]: EntityIndexes;
     } = {};
 
-
     public static getIndexes() {
         return IndexStore.entityIndexes;
+    }
+
+    static exists(table: string, property: string): Boolean {
+        if (IndexStore.entityIndexes[table] === undefined) {
+            return false;
+        }
+
+        return IndexStore.entityIndexes[table].has(property);
     }
 
     static getIndex(table: string, property: string): BTree<any, any> {

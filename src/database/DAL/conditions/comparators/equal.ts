@@ -1,6 +1,7 @@
 import IComparator from "./IComparator";
 import IndexStore from "../../indexes/indexStore";
 import BTree from "../../../BTree/btree";
+import { Filter } from "../../query/types";
 export default class equal implements IComparator {
     value: any;
     property: any;
@@ -11,8 +12,8 @@ export default class equal implements IComparator {
         this.btree = IndexStore.getIndex(entityName, property);
     }
 
-    public test(val: any) {
-        return val === this.value;
+    public getFilter(): Filter<any> {
+        return e => e === this.value;
     }
 
     public async *traverse(btree: BTree<any, any>) {
