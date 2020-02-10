@@ -1,7 +1,7 @@
 <template>
     <div class="code">
         <h2>Write query</h2>
-        <prism-editor v-model="code" language="js"></prism-editor>
+        <prism-editor v-model="code" language="js" class="elevation-0"></prism-editor>
         <button @click="runQuery">Execute</button>
     </div>
 </template>
@@ -51,5 +51,10 @@ export default class CodeEditor extends Vue {
     display: block;
     overflow: auto;
     height: 100%;
+}
+</style>
+<style>
+code {
+    box-shadow: none;
 }
 </style>

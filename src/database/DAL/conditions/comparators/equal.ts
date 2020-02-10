@@ -15,9 +15,7 @@ export default class equal implements IComparator {
         return val === this.value;
     }
 
-    public async traverse(btree: BTree<any, any>) {
-        return async function*() {
-            yield await btree.get(this.value);
-        };
+    public async *traverse(btree: BTree<any, any>) {
+        yield await btree.get(this.value);
     }
 }

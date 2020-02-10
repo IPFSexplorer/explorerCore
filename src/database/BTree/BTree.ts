@@ -8,14 +8,10 @@ export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {
     private root?: BTreeNode<Key, Value>;
-
     private t: number;
-
     public comparator: Comparator<Key>;
-
     public keyGetter: KeyGetter<Value, Key>;
-
-    private size: number;
+    public size: number;
 
     constructor(
         t: number = 8,

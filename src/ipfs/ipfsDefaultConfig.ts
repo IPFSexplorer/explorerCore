@@ -18,7 +18,7 @@ export async function randomPortsConfigAsync() {
     };
 }
 
-export async function browserConfigAsync() {
+export function browserConfigAsync() {
     return {
         repo: "ipfs-" + Math.random(),
         pass: "01234567890123456789",
@@ -31,11 +31,6 @@ export async function browserConfigAsync() {
                     "/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star"
                 ]
             },
-            pubsub: {
-                enabled: true,
-                signMessages: false,
-                strictSigning: false
-            }
         },
         ipld: {
             formats: [cbor, require("ipld-dag-pb")]

@@ -14,7 +14,10 @@ export default class BaseQuery<T> {
     }
 
     public skip(skip: number) {
-        console.log("set skip");
+
+        if (skip === -1) {
+            return this
+        }
         this.queryPlanner.skip = skip;
         return this;
     }

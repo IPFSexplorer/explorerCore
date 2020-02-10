@@ -5,32 +5,33 @@ import PubSub from "../../../ipfs/PubSub";
 import DAG from "../../../ipfs/DAG";
 
 export const EXPLORER_TOPIC = "explorer_topic";
+export let entityIndexes: {
+    [table: string]: EntityIndexes;
+} = {};
 
 export default abstract class IndexStore {
-    static entityIndexes: {
-        [table: string]: EntityIndexes;
-    } = {};
+
 
     static getIndex(table: string, property: string): BTree<any, any> {
-        if (this.entityIndexes[table] === undefined) {
+        if (entityIndexes[table] === undefined) {
             logger.error("Entity does not exsits");
             throw "Entity does not exists";
         }
-        return this.entityIndexes[table].getIndex(property);
+        return entityIndexes[table].getIndex(property);
     }
 
     static getPrimaryIndex(table: string) {
-        return this.entityIndexes[table].getPrimaryIndex();
+        return entityIndexes[table].getPrimaryIndex();
     }
 
     static getIndexesForEntity(
         table: string
     ): { [property: string]: BTree<any, any> } {
-        if (this.entityIndexes[table] === undefined) {
+        if (entityIndexes[table] === undefined) {
             logger.error("Entity does not exsits");
             throw "Entity does not exists";
         }
-        return this.entityIndexes[table].getIndexes();
+        return entityIndexes[table].getIndexes();
     }
 
     static updateIndex(
@@ -38,7 +39,7 @@ export default abstract class IndexStore {
         property: string,
         index: BTree<any, any>
     ) {
-        this.entityIndexes[table].updateIndex(property, index);
+        entityIndexes[table].updateIndex(property, index);
     }
 
     static addIndex(
@@ -47,14 +48,14 @@ export default abstract class IndexStore {
         index: BTree<any, any>,
         isPrimary: Boolean = false
     ): void {
-        if (!this.entityIndexes[table]) {
-            this.entityIndexes[table] = new EntityIndexes();
+        if (!entityIndexes[table]) {
+            entityIndexes[table] = new EntityIndexes();
         }
 
-        this.entityIndexes[table].addIndex(property, index);
+        entityIndexes[table].addIndex(property, index);
 
         if (isPrimary) {
-            this.entityIndexes[table].setPrimary(property);
+            entityIndexes[table].setPrimary(property);
         }
     }
 
@@ -67,9 +68,9 @@ export default abstract class IndexStore {
             [key: string]: EntityIndexes;
         } = await DAG.GetAsync(data.data.toString());
 
-        this.entityIndexes = {};
+        entityIndexes = {};
         for (const key in serializedIndexStore) {
-            this.entityIndexes[key] = new EntityIndexes().fromJSON(
+            entityIndexes[key] = new EntityIndexes().fromJSON(
                 serializedIndexStore[key]
             );
         }
@@ -77,8 +78,8 @@ export default abstract class IndexStore {
 
     static async publish() {
         let serialized = {};
-        for (const key in this.entityIndexes) {
-            serialized[key] = this.entityIndexes[key].toJSON();
+        for (const key in entityIndexes) {
+            serialized[key] = entityIndexes[key].toJSON();
         }
 
         const newDBRoot = (await DAG.PutAsync(serialized)).toString();
