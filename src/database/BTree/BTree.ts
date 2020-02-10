@@ -165,7 +165,9 @@ export default class BTree<Key, Value> {
 
     async generatorGreather(min: Key) {
         const subtree = await this.searchGreather(min);
-        return subtree.generatorGreather(min, this.comparator);
+        return subtree === null
+            ? []
+            : subtree.generatorGreather(min, this.comparator);
     }
 
     async getLess(max: Key): Promise<Array<Value>> {
@@ -181,7 +183,9 @@ export default class BTree<Key, Value> {
 
     async generatorLess(max: Key) {
         const subtree = await this.searchLess(max);
-        return subtree.generatorLess(max, this.comparator);
+        return subtree === null
+            ? []
+            : subtree.generatorLess(max, this.comparator);
     }
 
     async getRange(min: Key, max: Key): Promise<Array<Value>> {
@@ -198,12 +202,17 @@ export default class BTree<Key, Value> {
 
     async generatorRange(min: Key, max: Key) {
         const subtree = await this.searchRange(min, max);
-        return subtree.generatorRange(min, max, this.comparator);
+
+        return subtree === null
+            ? []
+            : subtree.generatorRange(min, max, this.comparator);
     }
 
     async get(key: Key): Promise<Value> {
         const leaf = await this.search(key);
-        return leaf.data[leaf.findKey(key, this.comparator)];
+        return leaf === null
+            ? null
+            : leaf.data[leaf.findKey(key, this.comparator)];
     }
 
     toJSON() {
