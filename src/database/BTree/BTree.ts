@@ -216,7 +216,10 @@ export default class BTree<Key, Value> {
     }
 
     fromJSON(data: any): BTree<Key, Value> {
-        this.root = new BTreeNode<Key, Value>().fromJSON(data.root);
+        this.root =
+            data.root === null
+                ? null
+                : new BTreeNode<Key, Value>().fromJSON(data.root);
         this.t = data.t;
         this.comparator = makeFunctionFromString(data.comparator);
         this.keyGetter = makeFunctionFromString(data.keyGetter);
