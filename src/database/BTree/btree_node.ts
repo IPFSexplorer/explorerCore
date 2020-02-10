@@ -32,7 +32,7 @@ export default class BTreeNode<Key, Value> {
         node.keys = nodeData.keys;
         node.data = nodeData.data;
         node.n = nodeData.n;
-        node.children = nodeData._C;
+        node.children = nodeData.children;
         return node;
         //return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
     }
@@ -749,7 +749,7 @@ export default class BTreeNode<Key, Value> {
         this.keys = data.keys;
         this.data = data.data;
         this.n = data.n;
-        this.children = data._C;
+        this.children = data.children;
 
         return this;
     }
