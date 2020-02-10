@@ -26,6 +26,15 @@ export class Block extends Queriable<Block> {
     txCount: number;
     txs: CID[];
 
+    @Index(
+        (b1, b2) => b1 - b2, /* comparator */
+        b => {  /* key getter */
+            const day = new Date(b.time * 1000).getDay();
+            return day === 6 || day === 0;
+        }
+    )
+    bol_vytazeny_cez_vikend: boolean;
+
     constructor(data = null) {
         super("Block");
         if (data) {
