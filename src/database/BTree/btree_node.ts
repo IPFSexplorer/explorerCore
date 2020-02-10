@@ -7,7 +7,7 @@ export default class BTreeNode<Key, Value> {
     keys: Array<Key>;
     data: Array<Value>;
     n: number;
-    _C: Array<CID>;
+    children: Array<CID>;
     // _C: Array<BTreeNode<Key, Value>>;
 
     constructor(t: number = 0, isLeaf: boolean = false) {
@@ -19,27 +19,27 @@ export default class BTreeNode<Key, Value> {
         if (t > 0) {
             this.keys = new Array(2 * t - 1); // An array of keys
             this.data = new Array(2 * t - 1);
-            this._C = new Array(2 * t); // An array of child pointers
+            this.children = new Array(2 * t); // An array of child pointers
         }
         this.n = 0; // Current number of keys
     }
 
     async getChild(idx: number): Promise<BTreeNode<Key, Value>> {
         //return this._C[idx];
-        let nodeData = await DAG.GetAsync(this._C[idx]);
+        let nodeData = await DAG.GetAsync(this.children[idx]);
         let node = new BTreeNode<Key, Value>();
         node.leaf = nodeData.leaf;
         node.keys = nodeData.keys;
         node.data = nodeData.data;
         node.n = nodeData.n;
-        node._C = nodeData._C;
+        node.children = nodeData._C;
         return node;
         //return plainToClassFromExist(new BTreeNode<Key, Value>(), nodeData);
     }
 
     async setChild(node: BTreeNode<Key, Value>, idx: number): Promise<void> {
         //this._C[idx] = node;
-        this._C[idx] = await DAG.PutAsync(node);
+        this.children[idx] = await DAG.PutAsync(node);
     }
 
     // Function to traverse all nodes in a subtree rooted with this node
@@ -749,7 +749,7 @@ export default class BTreeNode<Key, Value> {
         this.keys = data.keys;
         this.data = data.data;
         this.n = data.n;
-        this._C = data._C;
+        this.children = data._C;
 
         return this;
     }
