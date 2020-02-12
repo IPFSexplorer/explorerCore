@@ -34,4 +34,26 @@ export default class Queriable<T> extends BaseQuery<T> {
         }
         return await IndexStore.publish();
     }
+
+    public async remove(): Promise<void> {
+        const indexes = IndexStore.getIndexesForEntity(this.entityName);
+        for (const key in indexes) {
+            IndexStore.updateIndex(
+                this.entityName,
+                key,
+                await indexes[key].remove(this)
+            );
+        }
+        return await IndexStore.publish();
+    }
+
+    toJSON() {
+        var result = {};
+        for (var x in this) {
+            if (x !== "queryPlanner") {
+                result[x as string] = this[x];
+            }
+        }
+        return result;
+    };
 }

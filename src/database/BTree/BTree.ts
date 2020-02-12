@@ -116,10 +116,13 @@ export default class BTree<Key, Value> {
     }
 
     // The main function that rem o ves a   new key in  thie B-Tree
-    async remove(k: Key): Promise<BTree<Key, Value>> {
+    // TODO: removing with non unique keys can remove different item
+    async remove(v: Value): Promise<BTree<Key, Value>> {
         if (this.root === null) {
-            throw new Error("The tree is empty");
+            return this;
         }
+
+        const k = this.keyGetter(v);
 
         // Call the remove function for root
         await this.root.remove(k, this.comparator, this.t);
@@ -127,7 +130,6 @@ export default class BTree<Key, Value> {
         // If the root node has 0 keys, make its first child as the new root
         //  if it has a child, otherwise set root as NULL
         if (this.root.n === 0) {
-            const tmp = this.root;
             if (this.root.leaf) this.root = null;
             else this.root = await this.root.getChild(0);
         }

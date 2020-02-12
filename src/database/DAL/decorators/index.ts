@@ -8,7 +8,7 @@ import { makeFunctionFromString } from "../../../common";
 export function Index(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,
     keyGetter: KeyGetter<any, any> = null,
-    branching: number = 16,
+    branching: number = 4,
     primary: boolean = false
 ) {
     return (target, property) => {

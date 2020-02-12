@@ -493,7 +493,7 @@ export default class BTreeNode<Key, Value> {
         } else {
             // If this node is a leaf node, then the key is not present in tree
             if (this.leaf)
-                throw new Error(`The key "${k}" is does not exist in the tree`);
+                return this;
 
             // The key to be removed is present in the sub-tree rooted with this node
             // The flag indicates whether the key is present in the sub-tree rooted

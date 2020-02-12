@@ -20,7 +20,6 @@ export async function randomPortsConfigAsync() {
 
 export function browserConfigAsync() {
     return {
-        repo: "ipfs-" + Math.random(),
         pass: "01234567890123456789",
         preload: { enabled: false },
         config: {
