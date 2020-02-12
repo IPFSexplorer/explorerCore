@@ -35,12 +35,12 @@ export class Transaction extends Queriable<Transaction> {
     fees: number;
 
     @Index(DEFAULT_COMPARATOR, tx =>
-        tx.vout.reduce((acc: number, vout: vout) => (acc += vout.value), 0)
+        tx.vout.reduce((acc, vout) => (acc += parseInt(vout.value)), 0)
     )
     vout_sum: boolean;
 
     @Index(DEFAULT_COMPARATOR, tx =>
-        tx.vin.reduce((acc: number, vin: vin) => (acc += vin.value), 0)
+        tx.vin.reduce((acc, vin) => (acc += parseInt(vin.value)), 0)
     )
     vin_sum: boolean;
 
