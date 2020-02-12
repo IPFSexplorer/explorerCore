@@ -29,7 +29,7 @@ export default class Queriable<T> extends BaseQuery<T> {
             IndexStore.updateIndex(
                 this.entityName,
                 key,
-                await indexes[key].save(this)
+                await indexes[key].save(this.toJSON())
             );
         }
         return await IndexStore.publish();
@@ -41,7 +41,7 @@ export default class Queriable<T> extends BaseQuery<T> {
             IndexStore.updateIndex(
                 this.entityName,
                 key,
-                await indexes[key].remove(this)
+                await indexes[key].remove(this.toJSON())
             );
         }
         return await IndexStore.publish();
