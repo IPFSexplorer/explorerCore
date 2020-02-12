@@ -34,14 +34,14 @@ export class Transaction extends Queriable<Transaction> {
     @Index()
     fees: number;
 
-    @Index(DEFAULT_COMPARATOR, tx => {
-        return tx.vout.reduce((acc: number, vout: vout) => (acc += vout.value));
-    })
+    @Index(DEFAULT_COMPARATOR, tx =>
+        tx.vout.reduce((acc: number, vout: vout) => (acc += vout.value), 0)
+    )
     vout_sum: boolean;
 
-    @Index(DEFAULT_COMPARATOR, tx => {
-        return tx.vin.reduce((acc: number, vin: vin) => (acc += vin.value));
-    })
+    @Index(DEFAULT_COMPARATOR, tx =>
+        tx.vin.reduce((acc: number, vin: vin) => (acc += vin.value), 0)
+    )
     vin_sum: boolean;
 
     constructor(data = null) {
