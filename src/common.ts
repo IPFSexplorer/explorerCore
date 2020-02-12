@@ -14,5 +14,5 @@ export function delay(ms: number) {
 // }
 
 export function makeFunctionFromString(value: string) {
-    return eval(value);
+    return new Function("return " + value)();
 }

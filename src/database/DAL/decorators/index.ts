@@ -7,14 +7,13 @@ import { makeFunctionFromString } from "../../../common";
 
 export function Index(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,
-    keyGetter: KeyGetter<any, any> = null,
-    branching: number = 4,
+    keyGetter: KeyGetter<any, any> = undefined,
+    branching: number = undefined,
     primary: boolean = false
 ) {
     return (target, property) => {
-        if (keyGetter === null) {
-            keyGetter = v => v["tmp"];
-            keyGetter = makeFunctionFromString(keyGetter.toString().replace('tmp', property));
+        if (!keyGetter) {
+            keyGetter = new Function(target.constructor.name, "return " + target.constructor.name + "['" + property + "']") as KeyGetter<any, any>;
         }
 
         IndexStore.addIndex(
