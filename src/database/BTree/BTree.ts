@@ -15,7 +15,7 @@ export default class BTree<Key, Value> {
     public size: number;
 
     constructor(
-        t: number = 8,
+        t: number = 16,
         comparator: Comparator<Key> = DEFAULT_COMPARATOR,
         keyGetter: KeyGetter<Value, Key> = DEFAULT_KEY_GETTER
     ) {
