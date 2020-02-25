@@ -47,7 +47,14 @@
         "vue-splitpane": "^1.0.6",
         "vuex": "^3.1.2",
         "winston": "^3.2.1",
-        "winston-console-format": "^1.0.5"
+        "winston-console-format": "^1.0.5",
+        "json-stringify-deterministic": "^1.0.1",
+        "orbit-db-identity-provider": "~0.3.0",
+        "orbit-db-io": "~0.2.0",
+        "p-do-whilst": "^1.1.0",
+        "p-each-series": "^2.1.0",
+        "p-map": "^1.1.1",
+        "p-whilst": "^1.0.0"
     },
     "devDependencies": {
         "@types/jest": "^24.9.1",
@@ -57,12 +64,10 @@
         "@vue/cli-plugin-typescript": "^4.2.2",
         "@vue/cli-plugin-unit-jest": "^4.2.2",
         "@vue/cli-service": "^4.2.2",
-        "@vue/eslint-config-prettier": "^5.0.0",
         "@vue/eslint-config-typescript": "^4.0.0",
         "@vue/test-utils": "1.0.0-beta.29",
         "dotenv": "^8.2.0",
         "eslint": "^5.16.0",
-        "eslint-plugin-prettier": "^3.1.1",
         "eslint-plugin-vue": "^5.0.0",
         "tslib": "~1.10.0",
         "typescript": "~3.5.3",
