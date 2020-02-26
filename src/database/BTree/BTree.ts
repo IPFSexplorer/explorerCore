@@ -1,6 +1,5 @@
 import { Comparator, Key, Value, Visitor, KeyGetter } from "./types";
 import BTreeNode from "./btree_node";
-import DAG from "../../ipfs/DAG";
 import { makeFunctionFromString } from "../../common";
 
 export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) =>
@@ -66,7 +65,6 @@ export default class BTree<Key, Value> {
 
     // The main function that inserts a new key   in th i s B-Tree
     async insert(k: Key, value: Value): Promise<BTree<Key, Value>> {
-        const cid = await DAG.PutAsync(value);
 
         const t = this.t;
         //If tree is empty
@@ -74,7 +72,7 @@ export default class BTree<Key, Value> {
             // Allocate memory for root
             this.root = new BTreeNode<Key, Value>(t, true);
             this.root.keys[0] = k; // Insert key
-            this.root.data[0] = cid;
+            this.root.data[0] = value;
             this.root.n = 1; // Update number of keys in root
         } else {
             // If tree is not empty
@@ -85,7 +83,7 @@ export default class BTree<Key, Value> {
                 // Allocate memory for new root
                 const s = new BTreeNode<Key, Value>(t, false);
                 // Make old root as child of new root
-                await s.setChild(root, 0);
+                await s.children.setChild(root, 0);
 
                 // Split the old root and move 1 key to the new root
                 await s.splitChild(0, root, t);
@@ -94,10 +92,10 @@ export default class BTree<Key, Value> {
                 // two children is going to have new key
                 let i = 0;
                 if (comparator(s.keys[0], k) < 0) i++;
-                await s.setChild(
-                    await (await s.getChild(i)).insertNonFull(
+                await s.children.setChild(
+                    await (await s.children.getChild(i)).insertNonFull(
                         k,
-                        cid,
+                        value,
                         comparator,
                         t
                     ),
@@ -108,7 +106,7 @@ export default class BTree<Key, Value> {
                 this.root = s;
             } else {
                 // If root is not full, call insertNonFull for root
-                this.root = await root.insertNonFull(k, cid, comparator, t);
+                this.root = await root.insertNonFull(k, value, comparator, t);
             }
         }
         this.size++;
@@ -131,7 +129,7 @@ export default class BTree<Key, Value> {
         //  if it has a child, otherwise set root as NULL
         if (this.root.n === 0) {
             if (this.root.leaf) this.root = null;
-            else this.root = await this.root.getChild(0);
+            else this.root = await this.root.children.getChild(0);
         }
 
         return this;

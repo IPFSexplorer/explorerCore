@@ -2,7 +2,6 @@
 import IndexStore from "../indexes/indexStore";
 import { Comparator, KeyGetter } from "../../BTree/types";
 import BTree, { DEFAULT_COMPARATOR } from "../../BTree/BTree";
-import { makeFunctionFromString } from "../../../common";
 
 
 export function Index(

@@ -1,4 +1,3 @@
-import IndexStore from "../indexes/indexStore";
 
 import { Index } from ".";
 import { Comparator, KeyGetter } from "../../BTree/types";
