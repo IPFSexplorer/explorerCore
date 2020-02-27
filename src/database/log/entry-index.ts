@@ -1,4 +1,4 @@
-export class EntryIndex {
+export default class EntryIndex {
     _cache: {};
     constructor(entries = {}) {
         this._cache = entries;

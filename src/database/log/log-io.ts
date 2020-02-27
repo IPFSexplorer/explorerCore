@@ -6,6 +6,7 @@ import { io } from "orbit-db-io";
 import { findUniques } from "./utils/find-uniques";
 import { difference } from "./utils/difference";
 import { IPFSNotDefinedError, LogNotDefinedError, NotALogError } from "./log-errors";
+import { write, read } from "./io/io";
 
 const IPLD_LINKS = ["heads"];
 const last = (arr, n) =>
@@ -20,14 +21,13 @@ export default class LogIO {
      * @returns {Promise<string>}
      * @deprecated
      */
-    static async toMultihash(ipfs, log, { format = undefined } = {}) {
-        if (!isDefined(ipfs)) throw IPFSNotDefinedError();
+    static async toMultihash(log, { format = undefined } = {}) {
         if (!isDefined(log)) throw LogNotDefinedError();
         if (!isDefined(format)) format = "dag-cbor";
         if (log.values.length < 1)
             throw new Error(`Can't serialize an empty log`);
 
-        return io.write(ipfs, format, log.toJSON(), { links: IPLD_LINKS });
+        return write(format, log.toJSON(), { links: IPLD_LINKS });
     }
 
     /**
@@ -40,7 +40,6 @@ export default class LogIO {
      * @param {function(hash, entry, parent, depth)} options.onProgressCallback
      */
     static async fromMultihash(
-        ipfs,
         hash,
         {
             length = -1,
@@ -51,10 +50,9 @@ export default class LogIO {
             onProgressCallback
         }
     ) {
-        if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         if (!isDefined(hash)) throw new Error(`Invalid hash: ${hash}`);
 
-        const logData = await io.read(ipfs, hash, { links: IPLD_LINKS });
+        const logData = await read(hash, { links: IPLD_LINKS });
 
         if (!logData.heads || !logData.id) throw NotALogError();
 
@@ -62,7 +60,7 @@ export default class LogIO {
         sortFn = sortFn || NoZeroes(LastWriteWins);
         const isHead = e => logData.heads.includes(e.hash);
 
-        const all = await EntryIO.fetchAll(ipfs, logData.heads, {
+        const all = await EntryIO.fetchAll(logData.heads, {
             length,
             exclude,
             timeout,

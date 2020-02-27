@@ -38,8 +38,8 @@
     "multihashes": "~0.4.14",
     "multihashing": "^0.3.3",
     "multihashing-async": "^0.8.0",
-    "orbit-db-identity-provider": "~0.3.0",
-    "orbit-db-io": "~0.2.0",
+    "orbit-db-identity-provider": "^0.3.0",
+    "orbit-db-io": "^0.2.0",
     "p-do-whilst": "^1.1.0",
     "p-each-series": "^2.1.0",
     "p-map": "^1.1.1",
@@ -71,6 +71,8 @@
     "tslib": "~1.10.0",
     "typescript": "^3.8.2",
     "typestub-ipfs": "^0.23.14",
-    "webpack-env": "^0.8.0"
+    "webpack-env": "^0.8.0",
+    "orbit-db-storage-adapter": "^0.4.2",
+    "orbit-db-test-utils": "~0.8.4"
   }
 }

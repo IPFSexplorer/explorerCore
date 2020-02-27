@@ -1,4 +1,3 @@
-import IPFStype from "typestub-ipfs";
 import logger from "../logger";
 import IPFS from "ipfs";
 

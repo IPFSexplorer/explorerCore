@@ -5,8 +5,9 @@ import Clock from "./lamport-clock";
 import { LastWriteWins, NoZeroes } from "./log-sorting";
 import AccessController from "./default-access-controller";
 import { IPFSNotDefinedError, LtOrLteMustBeStringOrArray, LogNotDefinedError, NotALogError } from "./log-errors";
-const { isDefined, findUniques } = require("./utils");
-const EntryIndex = require("./entry-index");
+import EntryIndex from "./entry-index";
+import { isDefined } from "./utils/is-defined";
+import { findUniques } from "./utils/find-uniques";
 const randomId = () => new Date().getTime().toString();
 const getHash = (e) => e.hash;
 const flatMap = (res: string | any[], acc: any) => res.concat(acc);
@@ -16,6 +17,7 @@ const uniqueEntriesReducer = (res, acc) => {
     res[acc.hash] = acc;
     return res;
 };
+
 
 /**
  * Log.
@@ -29,7 +31,6 @@ const uniqueEntriesReducer = (res, acc) => {
  */
 export default class Log {
     private _sortFn: (a: any, b: any) => any;
-    private _storage: any;
     private _id: string;
     private _access: any;
     private _identity: any;
@@ -55,14 +56,9 @@ export default class Log {
      * @return {Log} The log instance
      */
     constructor(
-        ipfs: any,
         identity: any,
         { logId = undefined, access = undefined, entries = undefined, heads = undefined, clock = undefined, sortFn = undefined, concurrency = undefined } = {}
     ) {
-        if (!isDefined(ipfs)) {
-            throw IPFSNotDefinedError();
-        }
-
         if (!isDefined(identity)) {
             throw new Error("Identity is required");
         }
@@ -88,7 +84,6 @@ export default class Log {
 
         this._sortFn = NoZeroes(sortFn);
 
-        this._storage = ipfs;
         this._id = logId || randomId();
 
         // Access Controller
@@ -325,7 +320,6 @@ export default class Log {
         // @TODO: Split Entry.create into creating object, checking permission, signing and then posting to IPFS
         // Create the entry and add it to the internal cache
         const entry = await Entry.create(
-            this._storage,
             this._identity,
             this.id,
             data,
@@ -609,7 +603,7 @@ export default class Log {
      * @returns {Promise<string>} Multihash of the Log as Base58 encoded string.
      */
     toMultihash({ format = undefined } = {}): Promise<string> {
-        return LogIO.toMultihash(this._storage, this, { format });
+        return LogIO.toMultihash(this, { format });
     }
 
     /**
@@ -626,7 +620,6 @@ export default class Log {
      * @returns {Promise<Log>}
      */
     static async fromMultihash(
-        ipfs: any,
         identity: any,
         hash: any,
         {
@@ -641,7 +634,6 @@ export default class Log {
     ) {
         // TODO: need to verify the entries with 'key'
         const { logId, entries, heads } = await LogIO.fromMultihash(
-            ipfs,
             hash,
             {
                 length,
@@ -652,7 +644,7 @@ export default class Log {
                 sortFn
             }
         );
-        return new Log(ipfs, identity, {
+        return new Log(identity, {
             logId,
             access,
             entries,
@@ -699,7 +691,7 @@ export default class Log {
             sortFn: undefined,
             onProgressCallback
         });
-        return new Log(ipfs, identity, { logId, access, entries, sortFn });
+        return new Log(identity, { logId, access, entries, sortFn });
     }
 
     /**
@@ -727,7 +719,7 @@ export default class Log {
             concurrency: undefined,
             onProgressCallback
         });
-        return new Log(ipfs, identity, { logId, access, entries, sortFn });
+        return new Log(identity, { logId, access, entries, sortFn });
     }
 
     /**
@@ -765,7 +757,7 @@ export default class Log {
             concurrency,
             onProgressCallback
         });
-        return new Log(ipfs, identity, { logId, access, entries, sortFn });
+        return new Log(identity, { logId, access, entries, sortFn });
     }
 
     /**
@@ -825,8 +817,7 @@ export default class Log {
         // Create our indices
         entries.forEach(addToIndex);
 
-        var addUniques = (res: string | any[], entries: any, idx: any, arr: any) =>
-            res.concat(findUniques(entries, "hash"));
+        var addUniques = (res, entries, idx, arr) => res.concat(findUniques(entries, 'hash'))
         var exists = (e: string | number) => hashes[e] === undefined;
         var findFromReverseIndex = (e: string | number) => reverseIndex[e];
 

@@ -12,7 +12,7 @@ export default class EntryIO {
         { length, exclude = [], timeout, concurrency, onProgressCallback }
     ) {
         const fetchOne = async hash =>
-            EntryIO.fetchAll(ipfs, hash, {
+            EntryIO.fetchAll(hash, {
                 length,
                 exclude,
                 timeout,
@@ -40,7 +40,6 @@ export default class EntryIO {
    * @returns {Promise<Array<Entry>>}
    */
     static async fetchAll(
-        ipfs,
         hashes,
         {
             length = -1,
@@ -176,7 +175,7 @@ export default class EntryIO {
 
                 try {
                     // Load the entry
-                    const entry = await Entry.fromMultihash(ipfs, hash);
+                    const entry = await Entry.fromMultihash(hash);
 
                     // Add it to the results
                     addToResults(entry);
