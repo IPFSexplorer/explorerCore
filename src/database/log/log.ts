@@ -30,15 +30,15 @@ const uniqueEntriesReducer = (res, acc) => {
  * https://hal.inria.fr/inria-00555588
  */
 export default class Log {
-    private _sortFn: (a: any, b: any) => any;
-    private _id: string;
-    private _access: any;
-    private _identity: any;
-    private _entryIndex: any;
-    private _headsIndex: any;
-    private _nextsIndex: {};
-    private _length: number;
-    private _clock: Clock;
+    protected _sortFn: (a: any, b: any) => any;
+    protected _id: string;
+    protected _access: any;
+    protected _identity: any;
+    protected _entryIndex: any;
+    protected _headsIndex: any;
+    protected _nextsIndex: {};
+    protected _length: number;
+    protected _clock: Clock;
     joinConcurrency: any;
 
 
@@ -566,7 +566,7 @@ export default class Log {
      * └─one
      *   └─three
      */
-    toString(payloadMapper: (arg0: any) => any): string {
+    toString(payloadMapper: (arg0: any) => any = null): string {
         return this.values
             .slice()
             .reverse()

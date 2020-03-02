@@ -1,4 +1,3 @@
-import IndexStore from "../indexes/indexStore";
 import QueryPlanner from "../planners/queryPlanner";
 import { Filter } from "./types";
 

@@ -2,11 +2,11 @@ import Entry from "./entry";
 import EntryIO from "./entry-io";
 import { LastWriteWins, NoZeroes } from "./log-sorting";
 import { isDefined } from "./utils/is-defined";
-import { io } from "orbit-db-io";
 import { findUniques } from "./utils/find-uniques";
+
 import { difference } from "./utils/difference";
 import { IPFSNotDefinedError, LogNotDefinedError, NotALogError } from "./log-errors";
-import { write, read } from "./io/io";
+import { write, read } from "./io";
 
 const IPLD_LINKS = ["heads"];
 const last = (arr, n) =>

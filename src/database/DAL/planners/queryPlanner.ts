@@ -1,7 +1,7 @@
 import PropertyCondition from "../conditions/propertyCondition";
-import IndexStore from "../indexes/indexStore";
 import { Filter } from "../query/types";
 import DAG from "../../../ipfs/DAG";
+import Database from "../database/database";
 
 enum ConditionTypes {
     And,
@@ -87,8 +87,7 @@ export default class QueryPlanner {
         let i = this.conditions.length;
         while (i--) {
             if (
-                !IndexStore.exists(
-                    this.entityName,
+                !Database.getTable(this.entityName).hasIndex(
                     this.conditions[i].condition.property
                 )
             ) {
@@ -112,7 +111,7 @@ export default class QueryPlanner {
     }
 
     public async *noCondition() {
-        const index = IndexStore.getPrimaryIndex(this.entityName);
+        const index = Database.getTable(this.entityName).getPrimaryIndex();
 
         for await (const result of await index.generatorTraverse()) {
             yield* this.filterAndSkip(result);
@@ -120,10 +119,7 @@ export default class QueryPlanner {
     }
 
     public async *singleCondition() {
-        const index = IndexStore.getIndex(
-            this.entityName,
-            this.conditions[0].condition.property
-        );
+        const index = Database.getTable(this.entityName).getIndex(this.conditions[0].condition.property);
 
         for await (const result of await this.conditions[0].condition.comparator.traverse(
             index
@@ -134,10 +130,7 @@ export default class QueryPlanner {
 
     public async *multipleConditions() {
         for (const cond of this.conditions) {
-            const index = IndexStore.getIndex(
-                this.entityName,
-                cond.condition.property
-            );
+            const index = Database.getTable(this.entityName).getIndex(cond.condition.property);
 
             for await (const result of await cond.condition.comparator.traverse(
                 index

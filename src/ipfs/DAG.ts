@@ -6,7 +6,7 @@ export default abstract class DAG {
         return (await IPFSconnector.getInstanceAsync()).node;
     }
 
-    public static async PutAsync(data: any, options) {
+    public static async PutAsync(data: any, options = undefined) {
         const node = await DAG.getNodeAsync();
         const cid = await node.dag.put(data, options);
         return cid;

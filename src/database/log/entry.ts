@@ -2,7 +2,7 @@ import Clock from "./lamport-clock";
 import { isDefined } from "./utils/is-defined"
 import stringify from "json-stringify-deterministic";
 import LamportClock from "./lamport-clock";
-import { write, read } from "./io/io";
+import { read, write } from "./io";
 const IpfsNotDefinedError = () => new Error("Ipfs instance not defined");
 export const IPLD_LINKS = ["next", "refs"];
 const getWriteFormatForVersion = v => (v === 0 ? "dag-pb" : "dag-cbor");
