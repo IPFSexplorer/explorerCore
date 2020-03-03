@@ -1,8 +1,8 @@
 import IComparator from "./IComparator";
 import BTree from "../../../BTree/btree";
 import { Filter } from "../../query/types";
-import DatabaseInstance from "../../database/database";
-import DatabaseStore from "../../database/databaseStore";
+import DatabaseInstance from "../../database/databaseInstance";
+import Database from "../../database/databaseStore";
 export default class equal implements IComparator {
     value: any;
     property: any;
@@ -10,7 +10,7 @@ export default class equal implements IComparator {
     constructor(property, value, entityName) {
         this.property = property;
         this.value = value;
-        this.btree = DatabaseStore.database.getTable(entityName).getIndex(property);
+        this.btree = Database.selectedDatabase.getTable(entityName).getIndex(property);
     }
 
     public getFilter(): Filter<any> {

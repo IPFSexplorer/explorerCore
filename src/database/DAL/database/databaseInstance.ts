@@ -1,16 +1,18 @@
 import Table from "../tables/table";
 import DBLog from "./DBLog";
-import DBentity from "../query/DBentity";
+import Queriable from "../query/queriable";
 import IdentityProvider from "orbit-db-identity-provider"
 import { DbOperation } from "./DBOperations";
 import Log from "../../log/log";
 import { deflate, inflate, Serialize } from 'serialazy';
+import { Guid } from "guid-typescript";
 
 export default class DatabaseInstance {
     private tables: { [property: string]: Table } = {};
     private log: DBLog;
     // only local operation used when we want to fast apply migrations
-    private localOperations: Log
+    private localLog: Log
+    private time: number
     private databaseName: string
     private userName: string
 
@@ -30,10 +32,10 @@ export default class DatabaseInstance {
     }
 
     private async addToLog(operation, value = null) {
-        await (await this.getOrCreateLog()).add(operation, value)
+        await (await this.getOrCreateLog()).add(this.toMultihash, operation, value)
     }
 
-    public async create(table: string, entity: DBentity<any>) {
+    public async create(table: string, entity: Queriable<any>) {
         const insertedEntityAddress = await this.getTable(table).insert(entity)
         this.addToLog(DbOperation.Create, insertedEntityAddress)
     }
@@ -61,7 +63,7 @@ export default class DatabaseInstance {
     }
 
     public mergeDatabase(anotherLog: DBLog) {
-        this.log.merge(anotherLog)
+        // this.time = this.log.merge(anotherLog)
     }
 
     public toJson() {
@@ -73,6 +75,6 @@ export default class DatabaseInstance {
     }
 
     public toMultihash() {
-
+        return Guid.create().toString()
     }
 }

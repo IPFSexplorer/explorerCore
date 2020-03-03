@@ -3,6 +3,8 @@ import Log from "../src/database/log/log"
 import IdentityProvider from "orbit-db-identity-provider"
 import Keystore from 'orbit-db-keystore';
 import DBLog from "../src/database/DAL/database/DBLog";
+import { DbOperation } from "../src/database/DAL/database/DBOperations";
+import { Guid } from "guid-typescript";
 
 describe("Log", () => {
 
@@ -22,15 +24,16 @@ describe("Log", () => {
 
     it('DB log test', async () => {
         const identity = await IdentityProvider.createIdentity({ id: 'peerid' })
-        const log1 = new DBLog(identity)
-        const log2 = new DBLog(identity)
+        const log1 = new DBLog(identity, "x")
+        const log2 = new DBLog(identity, "x")
 
-        await log1.append("root")
+        const root = await log1.add(DbOperation.Init, "root", Guid.create().toString())
         await log2.join(log1)
+        log2.head = root
 
         for (let i = 0; i < 5; i++) {
-            await log1.append("A" + i)
-            await log2.append("B" + i)
+            await log1.add(DbOperation.Create, "A" + i, Guid.create().toString())
+            await log2.add(DbOperation.Create, "B" + i, Guid.create().toString())
         }
 
         log1.merge(log2)
@@ -38,7 +41,7 @@ describe("Log", () => {
         await log1.join(log2)
 
 
-        const a = log1.getAppliedDBchain()
+
         console.log(log1)
     }, 500000);
 

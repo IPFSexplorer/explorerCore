@@ -4,16 +4,19 @@ import localBtreeNodeChildren from "../src/database/BTree/children/localChildren
 import BTree from "../src/database/BTree/BTree";
 import { container } from "tsyringe";
 
-import DBentity from "../src/database/DAL/query/DBentity"
-import primaryKey from "../src/database/DAL/decorators/primaryKey"
-import index from "../src/database/DAL/decorators/index"
-import DatabaseInstance from "../src/database/DAL/database/database";
+import Queriable from "../src/database/DAL/query/queriable"
+import PrimaryKey from "../src/database/DAL/decorators/primaryKey"
+import DatabaseEntity from "../src/database/DAL/decorators/DatabaseEntity"
+import Index from "../src/database/DAL/decorators/index"
+import DatabaseInstance from "../src/database/DAL/database/databaseInstance";
+import Database from "../src/database/DAL/database/databaseStore";
 
-class User extends DBentity<User> {
-    @primaryKey()
+
+class User extends Queriable<User> {
+    @PrimaryKey()
     name: string
 
-    @index()
+    @Index()
     age: number
 }
 
@@ -28,5 +31,9 @@ describe("Btree", () => {
         u.name = "Matus"
         u.age = 22
         await u.save()
+    });
+
+    it('use DB', async () => {
+        new User()
     });
 })

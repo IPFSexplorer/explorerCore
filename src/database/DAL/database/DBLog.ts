@@ -1,50 +1,78 @@
 import Log from "../../log/log";
-import DatabaseInstance from "./database";
+import DatabaseInstance from "./databaseInstance";
 import { SortByEntryHash } from "../../log/log-sorting"
+import Entry from "../../log/entry";
+import { runInThisContext } from "vm";
+import { Guid } from "guid-typescript";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
 export default class DBLog extends Log {
+    private _head: string;
+    private identity: any;
 
     constructor(identity, dbName) {
-        super(identity, { logId: dbName, sortFn: SortByEntryHash})
+        super(identity, { logId: dbName, sortFn: SortByEntryHash })
+        this.head = null
+        this.identity = identity 
     }
 
     public merge(log: DBLog) {
-        let needToGoBackToTime = this.clock.time
-        const newItems = Log.difference(log, this)
-        for (const hash in newItems) {
-            const entry = log.get(hash)
-            const entriesInTime = this.getInTime(entry.clock.time)
-            if (entriesInTime.findIndex((e) => DEFAULT_COMPARATOR(e.hash, hash)) > -1) {
-                if (entry.clock.time < needToGoBackToTime)
-                    needToGoBackToTime = entry.clock.time
-            }
+        let thisHead: Entry = this.head
+        let otherHead: Entry = log.head
+        const rollbackOperations = []
+
+        while (thisHead.clock.time > otherHead.clock.time) {
+            if (Entry.verify(this.identity, thisHead))
+                rollbackOperations.push(thisHead)
+            thisHead = this.get(thisHead.payload.parent)
         }
 
-        // TODO load DB in time equal to "needToGoBackToTime" and apply all migrations
-        return needToGoBackToTime
+        while (otherHead.clock.time > thisHead.clock.time)
+            otherHead = log.get(otherHead.payload.parent)
 
-    }
-
-    public getAppliedEntryInTime(time: number) {
-        return this.getInTime(time).reduce((max, current) =>
-            DEFAULT_COMPARATOR(current.hash, max.hash) ? max : current)
-    }
-
-    public getAppliedDBchain() {
-        const results = []
-        for (let time = 1; time <= this.clock.time; time++) {
-            results.push(this.getAppliedEntryInTime(time))
+        // now, thisHHead and otherHead should equal
+        while (thisHead.payload.parent != otherHead.payload.parent) {
+            if (Entry.verify(this.identity, thisHead))
+                rollbackOperations.push(thisHead)
+            otherHead = log.get(otherHead.payload.parent)
+            thisHead = this.get(thisHead.payload.parent)
         }
-        return results
+
+        if (otherHead.hash > thisHead.hash) {
+            this.head = log.head
+            // TODO load DB from head
+            
+            rollbackOperations.reverse().forEach((e) =>
+                this.add(
+                    e.payload.transaction.operation,
+                    e.payload.transaction.data,
+                    Guid.create().toString())
+            )
+        }
     }
 
-    public async add(operation, data) {
-        return await this.append({
-            operation: operation,
-            data: data,
-            database: DatabaseInstance
+
+
+    public get head(): Entry {
+        return this.get(this._head)
+    }
+
+    public set head(entry: Entry) {
+        this._head = entry ? entry.hash : null
+    }
+
+
+    public async add(operation, data, dbHash) {
+        const entry = await this.append({
+            transaction: {
+                operation: operation,
+                data: data
+            },
+            database: dbHash,
+            parent: this.head ? this.head.hash : null
         })
+        this.head = entry
+        return entry
     }
 }

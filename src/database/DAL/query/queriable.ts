@@ -1,11 +1,12 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
-import DatabaseInstance from "../database/database";
-import DatabaseStore from "../database/databaseStore";
+import DatabaseInstance from "../database/databaseInstance";
+import Database from "../database/databaseStore";
 
-export default class DBentity<T> extends BaseQuery<T> {
+export default class Queriable<T> extends BaseQuery<T> {
     private entityName: string;
+    protected __DATABASE_NAME__: string;
 
     constructor() {
         super();
@@ -24,6 +25,6 @@ export default class DBentity<T> extends BaseQuery<T> {
     }
 
     public async save(): Promise<void> {
-        await DatabaseStore.database.create(this.entityName, this);
+        await Database.selectedDatabase.create(this.entityName, this);
     }
 }
