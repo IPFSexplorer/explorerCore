@@ -1,7 +1,8 @@
 import IComparator from "./IComparator";
 import BTree from "../../../BTree/btree";
 import { Filter } from "../../query/types";
-import Database from "../../database/database";
+import DatabaseInstance from "../../database/database";
+import DatabaseStore from "../../database/databaseStore";
 
 export default class greatherThan implements IComparator {
     value: any;
@@ -10,7 +11,7 @@ export default class greatherThan implements IComparator {
     constructor(property, value, entityName) {
         this.property = property;
         this.value = value;
-        this.btree = Database.getTable(entityName).getIndex(property);
+        this.btree = DatabaseStore.database.getTable(entityName).getIndex(property);
     }
 
     public getFilter(): Filter<any> {

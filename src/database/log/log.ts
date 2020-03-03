@@ -8,6 +8,7 @@ import { IPFSNotDefinedError, LtOrLteMustBeStringOrArray, LogNotDefinedError, No
 import EntryIndex from "./entry-index";
 import { isDefined } from "./utils/is-defined";
 import { findUniques } from "./utils/find-uniques";
+import TimeIndex from "./time-index";
 const randomId = () => new Date().getTime().toString();
 const getHash = (e) => e.hash;
 const flatMap = (res: string | any[], acc: any) => res.concat(acc);
@@ -35,6 +36,7 @@ export default class Log {
     protected _access: any;
     protected _identity: any;
     protected _entryIndex: any;
+    protected _timeIndex: any;
     protected _headsIndex: any;
     protected _nextsIndex: {};
     protected _length: number;
@@ -94,7 +96,11 @@ export default class Log {
         // Add entries to the internal cache
         const uniqueEntries = (entries || []).reduce(uniqueEntriesReducer, {});
         this._entryIndex = new EntryIndex(uniqueEntries);
+        this._timeIndex = new TimeIndex();
         entries = Object.values(uniqueEntries) || [];
+        entries.forEach(e => {
+            this._timeIndex.set(e.clock.time, e)
+        });
 
         // Set heads if not passed as an argument
         heads = heads || Log.findHeads(entries);
@@ -203,6 +209,15 @@ export default class Log {
      */
     get(hash: string): Entry {
         return this._entryIndex.get(hash);
+    }
+
+    /**
+     * Find entries in time.
+     * @param {number} [time] The hashes of the entry
+     * @returns {Array<Entry>|undefined}
+     */
+    getInTime(time: number): Array<Entry> {
+        return this._timeIndex.get(time);
     }
 
     /**
@@ -340,6 +355,7 @@ export default class Log {
         }
 
         this._entryIndex.set(entry.hash, entry);
+        this._timeIndex.set(entry.clock.time, entry)
         nexts.forEach(e => (this._nextsIndex[e] = entry.hash));
         this._headsIndex = {};
         this._headsIndex[entry.hash] = entry;
@@ -480,6 +496,7 @@ export default class Log {
 
         // Update the internal entry index
         this._entryIndex.add(newItems);
+        entriesToJoin.forEach((e: Entry) => this._timeIndex.set(e.clock.time, e))
 
         // Merge the heads
         const notReferencedByNewItems = (e: { hash: any; }) =>

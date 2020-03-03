@@ -7,7 +7,7 @@ import { container } from "tsyringe";
 import DBentity from "../src/database/DAL/query/DBentity"
 import primaryKey from "../src/database/DAL/decorators/primaryKey"
 import index from "../src/database/DAL/decorators/index"
-import Database from "../src/database/DAL/database/database";
+import DatabaseInstance from "../src/database/DAL/database/database";
 
 class User extends DBentity<User> {
     @primaryKey()

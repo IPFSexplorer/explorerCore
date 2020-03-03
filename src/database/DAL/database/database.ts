@@ -3,40 +3,56 @@ import DBLog from "./DBLog";
 import DBentity from "../query/DBentity";
 import IdentityProvider from "orbit-db-identity-provider"
 import { DbOperation } from "./DBOperations";
+import Log from "../../log/log";
+import { deflate, inflate, Serialize } from 'serialazy';
 
-export default abstract class Database {
-    private static tables: { [property: string]: Table } = {};
-    private static log: DBLog;
+export default class DatabaseInstance {
+    private tables: { [property: string]: Table } = {};
+    private log: DBLog;
+    // only local operation used when we want to fast apply migrations
+    private localOperations: Log
+    private databaseName: string
+    private userName: string
 
-    public static async getOrCreateLog() {
-        if (!Database.log) {
-            const identity = await IdentityProvider.createIdentity({ id: 'peerid' })
-            Database.log = new DBLog(identity)
+    constructor(databaseName, userName) {
+        this.databaseName = databaseName
+        this.userName = userName
+    }
+
+    public async getOrCreateLog() {
+        if (!this.log) {
+            const identity = await IdentityProvider.createIdentity({ id: this.userName })
+            this.log = new DBLog(identity, this.databaseName)
+            this.addToLog(DbOperation.Init)
         }
 
-        return Database.log
+        return this.log
     }
 
-    public static async create(table: string, entity: DBentity<any>) {
-        const insertedEntity = await Database.getTable(table).insert(entity)
-        await (await Database.getOrCreateLog()).add(DbOperation.Create, insertedEntity)
+    private async addToLog(operation, value = null) {
+        await (await this.getOrCreateLog()).add(operation, value)
     }
 
-    public static update(table, address, newData) {
+    public async create(table: string, entity: DBentity<any>) {
+        const insertedEntityAddress = await this.getTable(table).insert(entity)
+        this.addToLog(DbOperation.Create, insertedEntityAddress)
+    }
+
+    public update(table, address, newData) {
 
     }
 
-    public static remove(table, data) {
+    public remove(table, data) {
 
     }
 
-    public static addTable(tableName: string) {
-        Database.tables[tableName] = new Table(tableName)
+    public addTable(tableName: string) {
+        this.tables[tableName] = new Table(tableName)
     }
 
-    public static getTable(tableName: string): Table {
-        if (Database.tables.hasOwnProperty(tableName))
-            return Database.tables[tableName]
+    public getTable(tableName: string): Table {
+        if (this.tables.hasOwnProperty(tableName))
+            return this.tables[tableName]
         else return null
     }
 
@@ -45,6 +61,18 @@ export default abstract class Database {
     }
 
     public mergeDatabase(anotherLog: DBLog) {
-        Database.log.merge(anotherLog)
+        this.log.merge(anotherLog)
+    }
+
+    public toJson() {
+
+    }
+
+    public fromMultihash() {
+
+    }
+
+    public toMultihash() {
+
     }
 }

@@ -1,7 +1,8 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
-import Database from "../database/database";
+import DatabaseInstance from "../database/database";
+import DatabaseStore from "../database/databaseStore";
 
 export default class DBentity<T> extends BaseQuery<T> {
     private entityName: string;
@@ -23,6 +24,6 @@ export default class DBentity<T> extends BaseQuery<T> {
     }
 
     public async save(): Promise<void> {
-        await Database.create(this.entityName, this);
+        await DatabaseStore.database.create(this.entityName, this);
     }
 }
