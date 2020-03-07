@@ -7,7 +7,6 @@ const hasItems = arr => arr && arr.length > 0;
 export default class EntryIO {
     // Fetch log graphs in parallel
     static async fetchParallel(
-        ipfs,
         hashes,
         { length, exclude = [], timeout, concurrency, onProgressCallback }
     ) {

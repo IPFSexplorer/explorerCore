@@ -3,16 +3,18 @@ import BTreeNode from "../btree_node";
 import { Value, Key } from "../types";
 import DAG from "../../../ipfs/DAG";
 import CID from "cids";
+import { Serialize } from "serialazy";
 
 export default class ipfsBtreeNodeChildren implements IBtreeNodeChildren {
 
-    items: Array<CID>
+    @Serialize() items: Array<CID>
 
     constructor() {
         this.items = []
     }
 
     async getChild(idx: number): Promise<BTreeNode<Key, Value>> {
+        // TODO: serialazy!!!
         let nodeData = await DAG.GetAsync(this.items[idx]);
         let node = new BTreeNode<Key, Value>();
         node.leaf = nodeData.leaf;

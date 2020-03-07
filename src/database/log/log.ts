@@ -724,13 +724,12 @@ export default class Log {
      * @return {Promise<Log>} New Log
      */
     static async fromJSON(
-        ipfs: any,
         identity: any,
         json: any,
         { access = undefined, length = -1, timeout = undefined, sortFn = undefined, onProgressCallback = undefined } = {}
     ) {
         // TODO: need to verify the entries with 'key'
-        const { logId, entries } = await LogIO.fromJSON(ipfs, json, {
+        const { logId, entries } = await LogIO.fromJSON(json, {
             length,
             timeout,
             concurrency: undefined,

@@ -6,25 +6,41 @@ import { DbOperation } from "./DBOperations";
 import Log from "../../log/log";
 import { deflate, inflate, Serialize } from 'serialazy';
 import { Guid } from "guid-typescript";
+import SerializeAnObjectOf from "../../serialization/objectSerializer"
+import { JsonMap } from "serialazy/lib/dist/types/json_type";
+
 
 export default class DatabaseInstance {
+    @SerializeAnObjectOf(Table)
     private tables: { [property: string]: Table } = {};
-    private log: DBLog;
+
+    @Serialize.Custom({
+        down: (log: DBLog) => {
+            if (!log) { return; }
+            return log.toJSON() as JsonMap
+        },
+        up: (logObj) => {
+            // We will unserialize this later in FromJson function because this needs to be async
+            return logObj as unknown
+        }
+    }, { optional: true })
+    public log: DBLog;
+
+
     // only local operation used when we want to fast apply migrations
     private localLog: Log
     private time: number
-    private databaseName: string
-    private userName: string
+    @Serialize() public databaseName: string
+    public userName: string
+    private identity: any;
 
-    constructor(databaseName, userName) {
-        this.databaseName = databaseName
-        this.userName = userName
+    constructor() {
     }
 
     public async getOrCreateLog() {
         if (!this.log) {
-            const identity = await IdentityProvider.createIdentity({ id: this.userName })
-            this.log = new DBLog(identity, this.databaseName)
+            this.identity = await IdentityProvider.createIdentity({ id: this.userName })
+            this.log = new DBLog(this.identity, this.databaseName)
             this.addToLog(DbOperation.Init)
         }
 
@@ -32,12 +48,12 @@ export default class DatabaseInstance {
     }
 
     private async addToLog(operation, value = null) {
-        await (await this.getOrCreateLog()).add(this.toMultihash, operation, value)
+        await (await this.getOrCreateLog()).add(operation, value, this.publishDatabase())
     }
 
-    public async create(table: string, entity: Queriable<any>) {
-        const insertedEntityAddress = await this.getTable(table).insert(entity)
-        this.addToLog(DbOperation.Create, insertedEntityAddress)
+    public async create(entity: Queriable<any>) {
+        const insertedEntityAddress = await this.getOrCreateTableByEntity(entity).insert(entity)
+        await this.addToLog(DbOperation.Create, insertedEntityAddress)
     }
 
     public update(table, address, newData) {
@@ -48,33 +64,55 @@ export default class DatabaseInstance {
 
     }
 
-    public addTable(tableName: string) {
-        this.tables[tableName] = new Table(tableName)
+
+    public tableExists(tableName: string): boolean {
+        return this.tables.hasOwnProperty(tableName)
     }
 
-    public getTable(tableName: string): Table {
+    public getTableByName(tableName: string): Table {
         if (this.tables.hasOwnProperty(tableName))
             return this.tables[tableName]
         else return null
     }
 
-    public publishDatabase() {
 
+    public getTableByEntity(entity: Queriable<any>): Table {
+        if (this.tables.hasOwnProperty(entity.__TABLE_NAME__))
+            return this.tables[entity.__TABLE_NAME__]
+        else return null
+    }
+
+    public getOrCreateTableByEntity(entity: Queriable<any>): Table {
+        if (!this.getTableByEntity(entity)) {
+            this.tables[entity.__TABLE_NAME__] = new Table(
+                entity.__TABLE_NAME__,
+                entity.__INDEXES__.indexes,
+                entity.__INDEXES__.primary
+            )
+        }
+
+        return this.getTableByEntity(entity)
+    }
+
+    public publishDatabase() {
+        // TODO save database to IPFS and returns only CID
+        return {
+            tables: this.tables,
+            databaseName: this.databaseName
+        }
+    }
+
+    public getLog() {
+        return this.log.toJSON()
+    }
+
+    public async syncLog(log) {
+        this.log.merge(await DBLog.fromJSON(this.identity, log))
     }
 
     public mergeDatabase(anotherLog: DBLog) {
         // this.time = this.log.merge(anotherLog)
     }
 
-    public toJson() {
 
-    }
-
-    public fromMultihash() {
-
-    }
-
-    public toMultihash() {
-        return Guid.create().toString()
-    }
 }

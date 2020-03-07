@@ -116,19 +116,19 @@ export default class ipfsIO implements io {
         'raw': { write: ipfsIO.writeObj }
     }
 
-    public static write(codec, obj, options = {}) {
+    public static async write(codec, obj, options = {}) {
         const format = ipfsIO.formats[codec]
         if (!format) throw new Error('Unsupported codec')
 
-        return format.write(obj, options)
+        return await format.write(obj, options)
     }
 
-    public static read(cid, options = {}) {
+    public static async read(cid, options = {}) {
         cid = new CID(cid)
         const format = ipfsIO.formats[cid.codec]
 
         if (!format) throw new Error('Unsupported codec')
 
-        return format.read(cid, options)
+        return await format.read(cid, options)
     }
 } 

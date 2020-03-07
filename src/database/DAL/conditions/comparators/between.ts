@@ -13,7 +13,7 @@ export default class between implements IComparator {
         this.property = property;
         this.min = min;
         this.max = max;
-        this.btree = Database.selectedDatabase.getTable(entityName).getIndex(property);
+        this.btree = Database.selectedDatabase.getTableByName(entityName).getIndex(property);
     }
 
     public getFilter(): Filter<any> {

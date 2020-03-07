@@ -1,8 +1,6 @@
-
 import Index from ".";
 import { Comparator, KeyGetter } from "../../BTree/types";
 import { DEFAULT_COMPARATOR } from "../../BTree/BTree";
-import Database from "../database/databaseStore";
 
 export default function PrimaryKey(
     comparator: Comparator<any> = DEFAULT_COMPARATOR,
@@ -10,16 +8,15 @@ export default function PrimaryKey(
     branching: number = undefined
 ) {
     return (target, property) => {
-        Database.use(target.__DATABASE_NAME__, () => {
-            if (!Database.selectedDatabase.getTable(target.constructor.name)) {
-                Database.selectedDatabase.addTable(target.constructor.name)
+
+        target.__TABLE_NAME__ = target.constructor.name
+        if (!target.__INDEXES__) {
+            target.__INDEXES__ = {
+                primary: null,
+                indexes: {}
             }
-
-            Database.selectedDatabase.getTable(target.constructor.name).setPrimary(property)
-
-        })
-
-        target.entityName = target.constructor.name
+        }
+        target.__INDEXES__.primary = property
         return Index(comparator, keyGetter, branching)(target, property);
     }
 }

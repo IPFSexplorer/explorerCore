@@ -4,6 +4,7 @@ import { SortByEntryHash } from "../../log/log-sorting"
 import Entry from "../../log/entry";
 import { runInThisContext } from "vm";
 import { Guid } from "guid-typescript";
+import LogIO from "../../log/log-io";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -14,7 +15,7 @@ export default class DBLog extends Log {
     constructor(identity, dbName) {
         super(identity, { logId: dbName, sortFn: SortByEntryHash })
         this.head = null
-        this.identity = identity 
+        this.identity = identity
     }
 
     public merge(log: DBLog) {
@@ -42,7 +43,7 @@ export default class DBLog extends Log {
         if (otherHead.hash > thisHead.hash) {
             this.head = log.head
             // TODO load DB from head
-            
+
             rollbackOperations.reverse().forEach((e) =>
                 this.add(
                     e.payload.transaction.operation,
@@ -50,9 +51,32 @@ export default class DBLog extends Log {
                     Guid.create().toString())
             )
         }
+
+        return this.join(log)
     }
 
+    public toJSON() {
+        return {
+            head: this._head,
+            ... super.toJSON()
+        }
+    }
 
+    public static async fromJSON(
+        identity: any,
+        json: any,
+        { access = undefined, length = -1, timeout = undefined, sortFn = undefined, onProgressCallback = undefined } = {}
+    ) {
+        const { logId, entries } = await LogIO.fromJSON(json, {
+            length,
+            timeout,
+            concurrency: undefined,
+            onProgressCallback
+        });
+        const log = new DBLog(identity, { logId, access, entries, sortFn });
+        log._head = json.head
+        return log
+    }
 
     public get head(): Entry {
         return this.get(this._head)

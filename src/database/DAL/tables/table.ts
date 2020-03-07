@@ -1,27 +1,37 @@
-import DBLog from "../database/DBLog";
 import BTree from "../../BTree/BTree";
+import { Serialize } from "serialazy";
+import SerializeAnObjectOf from "../../serialization/objectSerializer";
+import { write } from "../../log/io";
 
 export default class Table {
-    public name: string;
-    private indexes: { [property: string]: BTree<any, any> };
-    private primaryIndex: string
+    @Serialize() public name: string;
+    @SerializeAnObjectOf(BTree) private indexes: { [property: string]: BTree<any, any> };
+    @Serialize() private primaryIndex: string
 
 
-    constructor(name: string) {
+    constructor(name: string, indexes, primaryKey: string) {
         this.name = name
         this.indexes = {}
+        for (const property in indexes) {
+            this.indexes[property] = new BTree(
+                indexes[property].branching,
+                indexes[property].comparator,
+                indexes[property].keyGetter
+            )
+        }
+        this.primaryIndex = primaryKey
     }
 
     public async insert(entity) {
         const promises = []
 
-        // TODO save entity to IPFS
+        const cid = write("dag-json", entity)
         for (const key in this.indexes) {
-            promises.push(this.getIndex(key).save(entity))
+            promises.push(this.getIndex(key).save(cid))
         }
 
-        // TODO return only CID of saved entity
-        return await Promise.all(promises)
+        await Promise.all(promises)
+        return cid
     }
 
 

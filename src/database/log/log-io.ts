@@ -101,7 +101,7 @@ export default class LogIO {
         const hashes = Array.isArray(hash) ? hash : [hash];
         // Fetch given length, return size at least the given input entries
         length = length > -1 ? Math.max(length, 1) : length;
-        const all = await EntryIO.fetchParallel(ipfs, hashes, {
+        const all = await EntryIO.fetchParallel(hashes, {
             length,
             exclude,
             timeout,
@@ -125,14 +125,12 @@ export default class LogIO {
      * @param {function(hash, entry, parent, depth)} options.onProgressCallback
      **/
     static async fromJSON(
-        ipfs,
         json,
         { length = -1, timeout, concurrency, onProgressCallback }
     ) {
-        if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         const { id, heads } = json;
         const headHashes = heads.map(e => e.hash);
-        const all = await EntryIO.fetchParallel(ipfs, headHashes, {
+        const all = await EntryIO.fetchParallel(headHashes, {
             length,
             timeout,
             concurrency,
@@ -178,7 +176,7 @@ export default class LogIO {
         const hashes = sourceEntries.map(e => e.hash);
 
         // Fetch the entries
-        const all = await EntryIO.fetchParallel(ipfs, hashes, {
+        const all = await EntryIO.fetchParallel(hashes, {
             length,
             exclude,
             timeout,

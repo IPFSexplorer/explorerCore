@@ -1,9 +1,12 @@
 import localIO from "./io/localIo";
+import ipfsIO from "./io/ipfsIO";
 
 
-export function write(codec, obj, options) {
-    return localIO.write(codec, obj, options)
+export async function write(codec, obj, options = {})
+{
+    return await ipfsIO.write(codec, obj, options);
 }
-export function read(cid, options) {
-    return localIO.read(cid, options)
+export async function read(cid, options)
+{
+    return await ipfsIO.read(cid, options);
 }

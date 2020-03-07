@@ -49,6 +49,7 @@
     "pull-mplex": "^0.1.2",
     "reflect-metadata": "^0.1.13",
     "serialazy": "^2.0.2",
+    "stacktrace-js": "^2.0.2",
     "tsyringe": "^4.1.0",
     "winston": "^3.2.1",
     "winston-console-format": "^1.0.5"

@@ -11,7 +11,7 @@ export default class greatherThan implements IComparator {
     constructor(property, value, entityName) {
         this.property = property;
         this.value = value;
-        this.btree = Database.selectedDatabase.getTable(entityName).getIndex(property);
+        this.btree = Database.selectedDatabase.getTableByName(entityName).getIndex(property);
     }
 
     public getFilter(): Filter<any> {

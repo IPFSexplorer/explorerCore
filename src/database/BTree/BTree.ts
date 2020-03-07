@@ -1,17 +1,28 @@
 import { Comparator, Key, Value, Visitor, KeyGetter } from "./types";
 import BTreeNode from "./btree_node";
 import { makeFunctionFromString } from "../../common";
+import { Serialize } from "serialazy";
 
 export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) =>
     a < b ? -1 : +(a > b);
 export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {
-    private root?: BTreeNode<Key, Value>;
-    private t: number;
+    @Serialize({ optional: true }) private root?: BTreeNode<Key, Value>;
+    @Serialize() private t: number;
+    @Serialize() public size: number;
+
+    @Serialize.Custom({
+        down: (comparator) => comparator.toString(),
+        up: (comparatorString: string) => makeFunctionFromString(comparatorString)
+    })
     public comparator: Comparator<Key>;
+
+    @Serialize.Custom({
+        down: (keyGetter) => keyGetter.toString(),
+        up: (keyGetterString: string) => makeFunctionFromString(keyGetterString)
+    })
     public keyGetter: KeyGetter<Value, Key>;
-    public size: number;
 
     constructor(
         t: number = 16,

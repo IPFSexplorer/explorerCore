@@ -1,16 +1,31 @@
 import { Key, Value, Comparator, Visitor } from "./types";
-import CID from "cids";
-import DAG from "../../ipfs/DAG";
 import IBtreeNodeChildren from "./children/Ichildren";
+import { Serialize, deflate, inflate } from "serialazy";
+import localBtreeNodeChildren from "./children/localChildren";
 import { container } from "tsyringe";
 
 export default class BTreeNode<Key, Value> {
-    leaf: boolean;
-    keys: Array<Key>;
+    @Serialize() leaf: boolean;
+
+    @Serialize.Custom({
+        down: (data: Array<Value>) => data,
+        up: (data: Array<any>) => data,
+    })
     data: Array<Value>;
-    n: number;
+
+    @Serialize.Custom({
+        down: (keys: Array<Value>) => keys,
+        up: (keys: Array<any>) => keys,
+    })
+    keys: Array<Key>;
+
+    @Serialize() n: number;
+
+    @Serialize.Custom({
+        down: (children: IBtreeNodeChildren) => deflate(children),
+        up: (children: Array<any>) => inflate(localBtreeNodeChildren, children),
+    })
     children: IBtreeNodeChildren;
-    // _C: Array<BTreeNode<Key, Value>>;
 
     constructor(t: number = 0, isLeaf: boolean = false) {
         // Copy the given minimum degree and leaf property

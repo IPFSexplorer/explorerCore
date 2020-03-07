@@ -1,7 +1,5 @@
 import { Comparator, KeyGetter } from "../../BTree/types";
-import BTree, { DEFAULT_COMPARATOR } from "../../BTree/BTree";
-import DatabaseInstance from "../database/databaseInstance";
-import Database from "../database/databaseStore";
+import { DEFAULT_COMPARATOR } from "../../BTree/BTree";
 
 
 export default function Index(
@@ -14,13 +12,17 @@ export default function Index(
             keyGetter = new Function(target.constructor.name, "return " + target.constructor.name + "['" + property + "']") as KeyGetter<any, any>;
         }
 
-        if (!Database.selectedDatabase.getTable(target.constructor.name)) {
-            Database.selectedDatabase.addTable(target.constructor.name)
+        if (!target.__INDEXES__) {
+            target.__INDEXES__ = {
+                primary: null,
+                indexes: {}
+            }
         }
-
-        Database.selectedDatabase.getTable(target.constructor.name).addIndex(
+        target.__INDEXES__.indexes[property] = {
             property,
-            new BTree(branching, comparator, keyGetter)
-        );
+            branching,
+            comparator,
+            keyGetter
+        }
     };
 }
