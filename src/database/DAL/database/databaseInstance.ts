@@ -1,118 +1,130 @@
 import Table from "../tables/table";
 import DBLog from "./DBLog";
 import Queriable from "../query/queriable";
-import IdentityProvider from "orbit-db-identity-provider"
+import IdentityProvider from "orbit-db-identity-provider";
 import { DbOperation } from "./DBOperations";
 import Log from "../../log/log";
 import { deflate, inflate, Serialize } from 'serialazy';
 import { Guid } from "guid-typescript";
-import SerializeAnObjectOf from "../../serialization/objectSerializer"
+import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { JsonMap } from "serialazy/lib/dist/types/json_type";
 
 
-export default class DatabaseInstance {
+export default class DatabaseInstance
+{
     @SerializeAnObjectOf(Table)
-    private tables: { [property: string]: Table } = {};
+    private tables: { [property: string]: Table; } = {};
 
     @Serialize.Custom({
-        down: (log: DBLog) => {
+        down: (log: DBLog) =>
+        {
             if (!log) { return; }
-            return log.toJSON() as JsonMap
+            return log.toJSON() as JsonMap;
         },
-        up: (logObj) => {
+        up: (logObj) =>
+        {
             // We will unserialize this later in FromJson function because this needs to be async
-            return logObj as unknown
+            return logObj as unknown;
         }
     }, { optional: true })
     public log: DBLog;
 
 
     // only local operation used when we want to fast apply migrations
-    private localLog: Log
-    private time: number
-    @Serialize() public databaseName: string
-    public userName: string
+    private localLog: Log;
+    private time: number;
+    @Serialize() public databaseName: string;
+    public userName: string;
     private identity: any;
 
-    constructor() {
+    constructor()
+    {
     }
 
-    public async getOrCreateLog() {
-        if (!this.log) {
-            this.identity = await IdentityProvider.createIdentity({ id: this.userName })
-            this.log = new DBLog(this.identity, this.databaseName)
-            this.addToLog(DbOperation.Init)
+    public async getOrCreateLog()
+    {
+        if (!this.log)
+        {
+            this.identity = await IdentityProvider.createIdentity({ id: this.userName });
+            this.log = new DBLog(this.identity, this.databaseName);
+            await this.addToLog(DbOperation.Init);
         }
 
-        return this.log
+        return this.log;
     }
 
-    private async addToLog(operation, value = null) {
-        await (await this.getOrCreateLog()).add(operation, value, this.publishDatabase())
+    private async addToLog(operation, value = null, toBeginning = false)
+    {
+        await (await this.getOrCreateLog()).add(operation, value, toBeginning);
     }
 
-    public async create(entity: Queriable<any>) {
-        const insertedEntityAddress = await this.getOrCreateTableByEntity(entity).insert(entity)
-        await this.addToLog(DbOperation.Create, insertedEntityAddress)
+    public async create(entity: Queriable<any>)
+    {
+        return await this.addToLog(DbOperation.Create, entity);
     }
 
-    public update(table, address, newData) {
-
-    }
-
-    public remove(table, data) {
+    public update(table, address, newData)
+    {
 
     }
 
+    public remove(table, data)
+    {
 
-    public tableExists(tableName: string): boolean {
-        return this.tables.hasOwnProperty(tableName)
     }
 
-    public getTableByName(tableName: string): Table {
+
+    public tableExists(tableName: string): boolean
+    {
+        return this.tables.hasOwnProperty(tableName);
+    }
+
+    public getTableByName(tableName: string): Table
+    {
         if (this.tables.hasOwnProperty(tableName))
-            return this.tables[tableName]
-        else return null
+            return this.tables[tableName];
+        else return null;
     }
 
 
-    public getTableByEntity(entity: Queriable<any>): Table {
+    public getTableByEntity(entity: Queriable<any>): Table
+    {
         if (this.tables.hasOwnProperty(entity.__TABLE_NAME__))
-            return this.tables[entity.__TABLE_NAME__]
-        else return null
+            return this.tables[entity.__TABLE_NAME__];
+        else return null;
     }
 
-    public getOrCreateTableByEntity(entity: Queriable<any>): Table {
-        if (!this.getTableByEntity(entity)) {
+    public getOrCreateTableByEntity(entity: Queriable<any>): Table
+    {
+        if (!this.getTableByEntity(entity))
+        {
             this.tables[entity.__TABLE_NAME__] = new Table(
                 entity.__TABLE_NAME__,
                 entity.__INDEXES__.indexes,
                 entity.__INDEXES__.primary
-            )
+            );
         }
 
-        return this.getTableByEntity(entity)
+        return this.getTableByEntity(entity);
     }
 
-    public publishDatabase() {
+    public publishDatabase()
+    {
+        return Guid.create();
         // TODO save database to IPFS and returns only CID
-        return {
-            tables: this.tables,
-            databaseName: this.databaseName
-        }
+        // return {
+        //     tables: this.tables,
+        //     databaseName: this.databaseName
+        // };
     }
 
-    public getLog() {
-        return this.log.toJSON()
+    public getLog()
+    {
+        return this.log.toMultihash();
     }
 
-    public async syncLog(log) {
-        this.log.merge(await DBLog.fromJSON(this.identity, log))
+    public async syncLog(log)
+    {
+        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
     }
-
-    public mergeDatabase(anotherLog: DBLog) {
-        // this.time = this.log.merge(anotherLog)
-    }
-
-
 }

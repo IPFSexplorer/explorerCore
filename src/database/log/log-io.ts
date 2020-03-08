@@ -12,7 +12,8 @@ const IPLD_LINKS = ["heads"];
 const last = (arr, n) =>
     arr.slice(arr.length - Math.min(arr.length, n), arr.length);
 
-export default class LogIO {
+export default class LogIO
+{
     //
     /**
      * Get the multihash of a Log.
@@ -21,7 +22,8 @@ export default class LogIO {
      * @returns {Promise<string>}
      * @deprecated
      */
-    static async toMultihash(log, { format = undefined } = {}) {
+    static async toMultihash(log, { format = undefined } = {})
+    {
         if (!isDefined(log)) throw LogNotDefinedError();
         if (!isDefined(format)) format = "dag-cbor";
         if (log.values.length < 1)
@@ -49,7 +51,8 @@ export default class LogIO {
             sortFn,
             onProgressCallback
         }
-    ) {
+    )
+    {
         if (!isDefined(hash)) throw new Error(`Invalid hash: ${hash}`);
 
         const logData = await read(hash, { links: IPLD_LINKS });
@@ -71,7 +74,9 @@ export default class LogIO {
         const logId = logData.id;
         const entries = length > -1 ? last(all.sort(sortFn), length) : all;
         const heads = entries.filter(isHead);
-        return { logId, entries, heads };
+
+        // TODO: remove ", head: logData.head "
+        return { logId, entries, heads, head: logData.head };
     }
 
     /**
@@ -94,7 +99,8 @@ export default class LogIO {
             sortFn,
             onProgressCallback
         }
-    ) {
+    )
+    {
         if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         if (!isDefined(hash)) throw new Error("'hash' must be defined");
         // Convert input hash(s) to an array
@@ -127,7 +133,8 @@ export default class LogIO {
     static async fromJSON(
         json,
         { length = -1, timeout, concurrency, onProgressCallback }
-    ) {
+    )
+    {
         const { id, heads } = json;
         const headHashes = heads.map(e => e.hash);
         const all = await EntryIO.fetchParallel(headHashes, {
@@ -153,19 +160,22 @@ export default class LogIO {
         ipfs,
         sourceEntries,
         { length = -1, exclude = [], timeout, concurrency, onProgressCallback }
-    ) {
+    )
+    {
         if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         if (!isDefined(sourceEntries))
             throw new Error("'sourceEntries' must be defined");
 
         // Make sure we only have Entry objects as input
-        if (!Array.isArray(sourceEntries) && !Entry.isEntry(sourceEntries)) {
+        if (!Array.isArray(sourceEntries) && !Entry.isEntry(sourceEntries))
+        {
             throw new Error(
                 `'sourceEntries' argument must be an array of Entry instances or a single Entry`
             );
         }
 
-        if (!Array.isArray(sourceEntries)) {
+        if (!Array.isArray(sourceEntries))
+        {
             sourceEntries = [sourceEntries];
         }
 
@@ -195,7 +205,8 @@ export default class LogIO {
         // in order to not lose references
         const missingSourceEntries = difference(sliced, sourceEntries, "hash");
 
-        const replaceInFront = (a, withEntries) => {
+        const replaceInFront = (a, withEntries) =>
+        {
             var sliced = a.slice(withEntries.length, a.length);
             return withEntries.concat(sliced);
         };

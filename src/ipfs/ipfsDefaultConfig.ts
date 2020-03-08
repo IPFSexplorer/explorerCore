@@ -1,9 +1,17 @@
 import Protector from "libp2p-pnet";
 import cbor from "ipld-dag-cbor";
+import dagPB from 'ipld-dag-pb';
+import dagJson from '@ipld/dag-json';
 import getPort from "get-port";
+import multicodec from 'multicodec';
+import { Guid } from "guid-typescript";
 
-export async function randomPortsConfigAsync() {
+
+
+export async function randomPortsConfigAsync()
+{
     return {
+        repo: "dist/" + Guid.create().toString(),
         config: {
             Addresses: {
                 Swarm: [
@@ -14,11 +22,15 @@ export async function randomPortsConfigAsync() {
                 API: "/ip4/127.0.0.1/tcp/" + (await getPort()),
                 Gateway: "/ip4/127.0.0.1/tcp/" + (await getPort())
             }
-        }
+        },
+        ipld: {
+            formats: [cbor, dagPB, require('@ipld/dag-json')],
+        },
     };
 }
 
-export function browserConfigAsync() {
+export function browserConfigAsync()
+{
     return {
         pass: "01234567890123456789",
         preload: { enabled: false },
