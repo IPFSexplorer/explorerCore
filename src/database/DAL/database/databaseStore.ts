@@ -1,20 +1,16 @@
 import DatabaseInstance from "./databaseInstance";
-import { Guid } from "guid-typescript";
 import DBcontext from "./DBcontext";
-import { inflate } from "serialazy";
-import Log from "../../log/log";
-import DBLog from "./DBLog";
 
 export default abstract class Database
 {
     private static _databases = {};
     private static selectedDB = null;
     static DB: any;
-    public static connect(databaseName: string, userName: string = Guid.create().toString())
+    public static connect(databaseName: string, identity)
     {
         this._databases[databaseName] = new DatabaseInstance();
         this._databases[databaseName].databaseName = databaseName;
-        this._databases[databaseName].userName = userName;
+        this._databases[databaseName].identity = identity;
     }
 
     public static use(databaseName)

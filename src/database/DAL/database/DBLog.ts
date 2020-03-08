@@ -10,6 +10,7 @@ import Transaction from "./transactions/transaction";
 import { DbOperation } from "./DBOperations";
 import Queriable from "../query/queriable";
 import Database from "./databaseStore";
+import PubSub from "../../../ipfs/PubSub";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -63,10 +64,13 @@ export default class DBLog extends Log
                     e.payload.transaction.data,
                     true)
             );
+            this._head = log.head.hash;
+            await this.join(log);
+            await PubSub.publish(this.id, (await this.toMultihash()).toString());
+            return;
         }
 
         await this.join(log);
-        this.head = log.head;
         return;
     }
 

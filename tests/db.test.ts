@@ -11,6 +11,8 @@ import { randomPortsConfigAsync } from "../src/ipfs/ipfsDefaultConfig";
 import { DEFAULT_COMPARATOR } from "../src/database/BTree/btree";
 import DBLog from "../src/database/DAL/database/DBLog";
 import DatabaseInstance from "../src/database/DAL/database/databaseInstance";
+import IdentityProvider from "orbit-db-identity-provider";
+import { delay } from "../src/common";
 
 
 class User extends Queriable<User> {
@@ -72,31 +74,46 @@ describe("Btree", () =>
 
     it('merge DBs', async () =>
     {
-        Database.connect("testDB", "user");
-        await Database.use("testDB").execute(async (db: DatabaseInstance) =>
+        const identity = await IdentityProvider.createIdentity({ id: "userA" });
+        Database.connect("testDB", identity);
+
+        await Database.use("testDB").execute(async (db1: DatabaseInstance) =>
         {
             await new User("test1", 1).save();
-            const dbLog1 = await Database.selectedDatabase.getLog();
+            await new User("test2", 2).save();
+            await new User("testA1", 3).save();
+            await new User("testA2", 4).save();
 
-            await new User("test3", 2).save();
-            const dbLog2 = await Database.selectedDatabase.getLog();
+            await db1.waitForAllTransactionsDone();
+            console.log(db1.log.toString(p => p.transaction.data.name));
+
+            Database.connect("testDB", identity);
+            await Database.use("testDB").execute(async (db2: DatabaseInstance) =>
+            {
+                await new User("test1", 1).save();
+                await new User("test2", 2).save();
+                await new User("testB1", 3).save();
+                await new User("testB2", 4).save();
+
+                await db2.waitForAllTransactionsDone();
 
 
-            Database.selectedDatabase.log = await DBLog.fromMultihash(db.identity, db.databaseName, dbLog1);
-            Database.selectedDatabase.fromMultihash(Database.selectedDatabase.log.head.payload.database);
+                await delay(3000);
 
-            await new User("aaaa", 3).save();
-            await new User("test4", 7).save();
-            await new User("test5", 4).save();
-            await new User("test6", 5).save();
-            await new User("test7", 6).save();
+                console.log(db2.log.toString(p => p.transaction.data.name));
+                console.log(db1.log.toString(p => p.transaction.data.name));
 
-            await Database.selectedDatabase.syncLog(dbLog2);
+                let head = db2.log.head;
+                while (head)
+                {
+                    console.log(head.payload.transaction.data.name);
+                    head = db2.log.get(head.payload.parent);
+                }
 
-
-            await db.waitForAllTransactionsDone();
-            console.log(db.log.toString(p => p.transaction.data.name));
-
+            });
         });
+
+
+
     }, 500000);
 });

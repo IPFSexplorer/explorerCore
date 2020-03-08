@@ -10,6 +10,7 @@ import { JsonMap } from "serialazy/lib/dist/types/json_type";
 import { write, read } from "../../log/io";
 import Queue from "queue";
 import Transaction from "./transactions/transaction";
+import PubSub from "../../../ipfs/PubSub";
 
 export default class DatabaseInstance
 {
@@ -36,7 +37,6 @@ export default class DatabaseInstance
     private localLog: Log;
     private time: number;
     @Serialize() public databaseName: string;
-    public userName: string;
     public identity: any;
 
     constructor()
@@ -51,8 +51,9 @@ export default class DatabaseInstance
     {
         if (!this.log)
         {
-            this.identity = await IdentityProvider.createIdentity({ id: this.userName });
             this.log = new DBLog(this.identity, this.databaseName);
+
+            await this.startSubscribe();
         }
 
         return this.log;
@@ -111,7 +112,15 @@ export default class DatabaseInstance
         });
 
         this.log.head = entry;
+        await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
         return entry;
+    }
+
+    private async startSubscribe()
+    {
+        return await PubSub.subscribe(this.databaseName, (msg) =>
+            this.syncLog(msg.data.toString())
+        );
     }
 
     public async create(entity: Queriable<any>)
@@ -191,7 +200,7 @@ export default class DatabaseInstance
 
     public async syncLog(log)
     {
-        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
+        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), false);
     }
 
     public async waitForAllTransactionsDone()
