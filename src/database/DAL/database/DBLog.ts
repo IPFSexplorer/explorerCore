@@ -17,7 +17,7 @@ export default class DBLog extends Log
 {
     private _head: string;
     private identity: any;
-    private transactionsQueue: Queue;
+
 
     constructor(identity, dbName,
         { access = undefined, entries = undefined, heads = undefined, clock = undefined, concurrency = undefined, head = null } = {})
@@ -25,10 +25,6 @@ export default class DBLog extends Log
         super(identity, { logId: dbName, sortFn: SortByEntryHash, access, entries, heads, clock, concurrency });
         this._head = head;
         this.identity = identity;
-        this.transactionsQueue = new Queue({
-            concurrency: 1,
-            autostart: true
-        });
     }
 
     public async merge(log: DBLog)
@@ -39,7 +35,7 @@ export default class DBLog extends Log
 
         while (thisHead.clock.time > otherHead.clock.time)
         {
-            if (Entry.verify(this.identity, thisHead))
+            if (Entry.verify(this.identity.provider, thisHead))
                 rollbackOperations.push(thisHead);
             thisHead = this.get(thisHead.payload.parent);
         }
@@ -47,7 +43,7 @@ export default class DBLog extends Log
         while (otherHead.clock.time > thisHead.clock.time)
             otherHead = log.get(otherHead.payload.parent);
 
-        // now, thisHHead and otherHead should equal
+        // now, this.Head and otherHead should equal
         while (thisHead.payload.parent != otherHead.payload.parent)
         {
             if (Entry.verify(this.identity, thisHead))
@@ -58,11 +54,11 @@ export default class DBLog extends Log
 
         if (otherHead.hash > thisHead.hash)
         {
-            this.head = log.head;
-            // TODO load DB from head
+            rollbackOperations.push(thisHead);
+            await Database.databaseByName(this.id).fromMultihash(log.head.payload.database);
 
-            rollbackOperations.reverse().forEach((e) =>
-                this.add(
+            rollbackOperations.forEach((e) =>
+                Database.databaseByName(this.id).addToLog(
                     e.payload.transaction.operation,
                     e.payload.transaction.data,
                     true)
@@ -70,6 +66,7 @@ export default class DBLog extends Log
         }
 
         await this.join(log);
+        this.head = log.head;
         return;
     }
 
@@ -125,64 +122,5 @@ export default class DBLog extends Log
     public set head(entry: Entry)
     {
         this._head = entry ? entry.hash : null;
-    }
-
-
-    public async add(operation, data, toBeginning = false)
-    {
-        const logFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
-
-        // TODO add reject on error
-        return new Promise((resolve, reject) =>
-        {
-            logFunction(async () =>
-            {
-                resolve(
-                    await this.runTransaction(new Transaction(operation, data))
-                );
-            });
-        });
-    }
-
-    private async runTransaction(tx: Transaction)
-    {
-        const database = Database.databaseByName(this.id);
-
-        switch (tx.operation)
-        {
-            case DbOperation.Create:
-                await database
-                    .getOrCreateTableByEntity(tx.data as Queriable<any>)
-                    .insert(tx.data as Queriable<any>);
-                break;
-
-            case DbOperation.Delete:
-
-                break;
-
-            case DbOperation.Update:
-
-                break;
-
-            case DbOperation.Init:
-                break;
-
-            case DbOperation.Merge:
-                await this.merge(tx.data as DBLog);
-                break;
-
-
-            default:
-                throw Error(`wrong db operation ${tx.operation}`);
-        }
-
-        const entry = await this.append({
-            transaction: tx,
-            database: database.publishDatabase(),
-            parent: this.head ? this.head.hash : null
-        });
-
-        this.head = entry;
-        return entry;
     }
 }

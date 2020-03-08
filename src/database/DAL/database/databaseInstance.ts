@@ -5,10 +5,11 @@ import IdentityProvider from "orbit-db-identity-provider";
 import { DbOperation } from "./DBOperations";
 import Log from "../../log/log";
 import { deflate, inflate, Serialize } from 'serialazy';
-import { Guid } from "guid-typescript";
 import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { JsonMap } from "serialazy/lib/dist/types/json_type";
-
+import { write, read } from "../../log/io";
+import Queue from "queue";
+import Transaction from "./transactions/transaction";
 
 export default class DatabaseInstance
 {
@@ -28,6 +29,7 @@ export default class DatabaseInstance
         }
     }, { optional: true })
     public log: DBLog;
+    private transactionsQueue: Queue;
 
 
     // only local operation used when we want to fast apply migrations
@@ -35,10 +37,14 @@ export default class DatabaseInstance
     private time: number;
     @Serialize() public databaseName: string;
     public userName: string;
-    private identity: any;
+    public identity: any;
 
     constructor()
     {
+        this.transactionsQueue = new Queue({
+            concurrency: 1,
+            autostart: true
+        });
     }
 
     public async getOrCreateLog()
@@ -47,20 +53,70 @@ export default class DatabaseInstance
         {
             this.identity = await IdentityProvider.createIdentity({ id: this.userName });
             this.log = new DBLog(this.identity, this.databaseName);
-            await this.addToLog(DbOperation.Init);
         }
 
         return this.log;
     }
 
-    private async addToLog(operation, value = null, toBeginning = false)
+    public async addToLog(operation, value = null, toBeginning = false)
     {
-        await (await this.getOrCreateLog()).add(operation, value, toBeginning);
+
+        const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
+
+        // TODO add reject on error
+        return new Promise((resolve, reject) =>
+        {
+            queueFunction.call(this.transactionsQueue, async () =>
+            {
+                resolve(
+                    await this.runTransaction(new Transaction(operation, value))
+                );
+            });
+        });
+
+    }
+
+
+    public async runTransaction(tx: Transaction)
+    {
+        switch (tx.operation)
+        {
+            case DbOperation.Create:
+                await this
+                    .getOrCreateTableByEntity(tx.data as Queriable<any>)
+                    .insert(tx.data as Queriable<any>);
+                break;
+
+            case DbOperation.Delete:
+
+                break;
+
+            case DbOperation.Update:
+
+                break;
+
+            case DbOperation.Merge:
+                await this.log.merge(tx.data as DBLog);
+                return;
+
+
+            default:
+                throw Error(`wrong db operation ${tx.operation}`);
+        }
+
+        const entry = await (await this.getOrCreateLog()).append({
+            transaction: tx,
+            database: await this.toMultihash(),
+            parent: this.log.head ? this.log.head.hash : null
+        });
+
+        this.log.head = entry;
+        return entry;
     }
 
     public async create(entity: Queriable<any>)
     {
-        return await this.addToLog(DbOperation.Create, entity);
+        await this.addToLog(DbOperation.Create, entity);
     }
 
     public update(table, address, newData)
@@ -98,33 +154,60 @@ export default class DatabaseInstance
     {
         if (!this.getTableByEntity(entity))
         {
-            this.tables[entity.__TABLE_NAME__] = new Table(
-                entity.__TABLE_NAME__,
+            const table = new Table();
+            table.init(entity.__TABLE_NAME__,
                 entity.__INDEXES__.indexes,
-                entity.__INDEXES__.primary
-            );
+                entity.__INDEXES__.primary);
+            this.tables[entity.__TABLE_NAME__] = table;
         }
 
         return this.getTableByEntity(entity);
     }
 
-    public publishDatabase()
+    public async toMultihash()
     {
-        return Guid.create();
-        // TODO save database to IPFS and returns only CID
-        // return {
-        //     tables: this.tables,
-        //     databaseName: this.databaseName
-        // };
+        const res = {};
+        Object.keys(this.tables).forEach(k => res[k] = deflate(this.tables[k]));
+        return await write("dag-json", res);
+    }
+
+
+    public async fromMultihash(cid)
+    {
+        const tables = await read(cid, {});
+        this.tables = {};
+
+        Object.keys(tables).forEach(k => this.tables[k] = inflate(Table, tables[k]));
+        return;
     }
 
     public getLog()
     {
-        return this.log.toMultihash();
+        if (this.log)
+        {
+            return this.log.toMultihash();
+        }
     }
 
     public async syncLog(log)
     {
         await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
+    }
+
+    public async waitForAllTransactionsDone()
+    {
+        return new Promise((resolve, reject) =>
+        {
+            this.transactionsQueue.start(error =>
+            {
+                if (error)
+                {
+                    reject(error);
+                } else
+                {
+                    resolve();
+                }
+            });
+        });
     }
 }

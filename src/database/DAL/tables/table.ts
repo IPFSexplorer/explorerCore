@@ -11,7 +11,12 @@ export default class Table
     @Serialize() private primaryIndex: string;
 
 
-    constructor(name: string, indexes, primaryKey: string)
+    constructor()
+    {
+
+    }
+
+    public init(name: string, indexes, primaryKey: string)
     {
         this.name = name;
         this.indexes = {};
