@@ -318,11 +318,7 @@ export default class Log
     async append(data: any, pointerCount = 1, pin = false): Promise<Entry>
     {
         // Update the clock (find the latest clock)
-        const newTime =
-            Math.max(
-                this.clock.time,
-                this.heads.reduce(maxClockTimeReducer, 0)
-            ) + 1;
+        const newTime = this.clock.time + 1;
         this._clock = new Clock(this.clock.id, newTime);
 
         const all = Object.values(

@@ -1,4 +1,5 @@
 import Log from "../../log/log";
+import LamportClock from "../../log/lamport-clock";
 import DatabaseInstance from "./databaseInstance";
 import { SortByEntryHash } from "../../log/log-sorting";
 import Entry from "../../log/entry";
@@ -65,12 +66,11 @@ export default class DBLog extends Log
                     true)
             );
             this._head = log.head.hash;
-            await this.join(log);
-            await PubSub.publish(this.id, (await this.toMultihash()).toString());
-            return;
         }
 
         await this.join(log);
+        this._clock = new LamportClock(this.clock.id, this.head.clock.time);
+        await PubSub.publish(this.id, (await this.toMultihash()).toString());
         return;
     }
 
