@@ -39,7 +39,7 @@ export default class BTreeNode<Key, Value> {
         {
             this.keys = new Array(2 * t - 1); // An array of keys
             this.data = new Array(2 * t - 1);
-            this.children = container.resolve("BtreeNodeChildren");
+            this.children = new ipfsBtreeNodeChildren();
         }
         this.n = 0; // Current number of keys
     }
