@@ -47,7 +47,7 @@ export default class DBLog extends Log
         // now, this.Head and otherHead should equal
         while (thisHead.payload.parent != otherHead.payload.parent)
         {
-            if (Entry.verify(this.identity, thisHead))
+            if (Entry.verify(this.identity.provider, thisHead))
                 rollbackOperations.push(thisHead);
             otherHead = log.get(otherHead.payload.parent);
             thisHead = this.get(thisHead.payload.parent);
