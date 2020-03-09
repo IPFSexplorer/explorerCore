@@ -6,5 +6,6 @@
   "releaseDraft": false,
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
-  }
+  },
+  "exists": true
 }
