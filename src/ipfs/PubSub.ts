@@ -29,7 +29,6 @@ export default abstract class PubSub
 
     public static async publish(topic: string, data: any)
     {
-        console.log("Publishing " + data);
         const node = await PubSub.getNodeAsync();
         await node.pubsub.publish(topic, data);
     }

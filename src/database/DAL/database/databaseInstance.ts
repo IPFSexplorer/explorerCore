@@ -9,9 +9,14 @@ import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { JsonMap } from "serialazy/lib/dist/types/json_type";
 import { write, read } from "../../log/io";
 import Queue from "queue";
-import Transaction from "./transactions/transaction";
+import Transaction from "./transactions/Transaction";
 import PubSub from "../../../ipfs/PubSub";
 import { delay } from "../../../common";
+import PubSubMessage from "./PubSub/pubSubMessage";
+import PubSubListener from "./PubSub/PubSub";
+import DBAccessController from "./AccessController/AccessController";
+import { PubSubMessageType } from "./PubSub/MessageType";
+import ITransaction from "./transactions/ITransaction";
 
 export default class DatabaseInstance
 {
@@ -30,11 +35,13 @@ export default class DatabaseInstance
             return logObj as unknown;
         }
     }, { optional: true })
-    public log: DBLog;
-    public transactionsQueue: Queue;
+    log: DBLog;
+    transactionsQueue: Queue;
 
-    @Serialize() public databaseName: string;
-    public identity: any;
+    @Serialize() databaseName: string;
+    identity: any;
+    pubSubListener: PubSubListener;
+    accessController: DBAccessController;
 
     constructor()
     {
@@ -42,6 +49,11 @@ export default class DatabaseInstance
             concurrency: 1,
             autostart: true
         });
+
+        this.accessController = new DBAccessController(this.databaseName);
+
+        this.pubSubListener = new PubSubListener(this.databaseName);
+        this.pubSubListener.start();
     }
 
     public async getOrCreateLog()
@@ -49,15 +61,12 @@ export default class DatabaseInstance
         if (!this.log)
         {
             this.log = new DBLog(this.identity, this.databaseName);
-
-            await this.startSubscribe();
-            this.startBroadcast();
         }
 
         return this.log;
     }
 
-    public async addToLog(operation, value = null, toBeginning = false)
+    public async addTransaction(operation, value = null, toBeginning = false)
     {
         console.log({ type: "ADD", operation, value });
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
@@ -81,42 +90,18 @@ export default class DatabaseInstance
     }
 
 
-    public async runTransaction(tx: Transaction)
+    public async runTransaction(tx: ITransaction)
     {
-        switch (tx.operation)
-        {
-            case DbOperation.Create:
-                await this
-                    .getOrCreateTableByEntity(tx.data as Queriable<any>)
-                    .insert(tx.data as Queriable<any>);
-                break;
-
-            case DbOperation.Delete:
-
-                break;
-
-            case DbOperation.Update:
-
-                break;
-
-            case DbOperation.Merge:
-                await this.log.merge(tx.data as DBLog);
-                return;
-
-
-            default:
-                throw Error(`wrong db operation ${tx.operation}`);
-        }
+        await tx.run(this);
 
         let entry;
-
-
         if (this.transactionsQueue.length <= 1) // if there is no other transaction
         {
             entry = await (await this.getOrCreateLog()).append({
                 transaction: tx,
                 database: await this.toMultihash(),
-                parent: this.log.head ? this.log.head.hash : null
+                parent: this.log.head ? this.log.head.hash : null,
+                grantAccessTo: this.accessController.getNext()
             });
             await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
         } else
@@ -131,26 +116,9 @@ export default class DatabaseInstance
         return entry;
     }
 
-    private async startSubscribe()
-    {
-        return await PubSub.subscribe(this.databaseName, (msg) =>
-            this.syncLog(msg.data.toString())
-        );
-    }
-
-    public async startBroadcast()
-    {
-        while (true)
-        {
-            if (this.transactionsQueue.length == 0) // if there is no other transaction
-                await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
-            await delay(5000);
-        }
-    }
-
     public async create(entity: Queriable<any>)
     {
-        await this.addToLog(DbOperation.Create, entity);
+        await this.addTransaction(DbOperation.Create, entity);
     }
 
     public update(table, address, newData)
@@ -163,11 +131,6 @@ export default class DatabaseInstance
 
     }
 
-
-    public tableExists(tableName: string): boolean
-    {
-        return this.tables.hasOwnProperty(tableName);
-    }
 
     public getTableByName(tableName: string): Table
     {
@@ -215,18 +178,18 @@ export default class DatabaseInstance
         return;
     }
 
-    public getLog()
+    public async publishLog(force = false)
     {
-        if (this.log)
-        {
-            return this.log.toMultihash();
-        }
+        if (this.transactionsQueue.length <= 1 || force) // if there is no other transaction
+            await this.pubSubListener.publish(
+                new PubSubMessage(PubSubMessageType.PublishVersion, (await this.log.toMultihash()).toString())
+            );
     }
+
 
     public async syncLog(log)
     {
-        console.log("Subscribing " + log);
-        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
+        await this.addTransaction(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
     }
 
     public async waitForAllTransactionsDone()

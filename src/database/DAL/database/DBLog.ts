@@ -7,7 +7,7 @@ import { runInThisContext } from "vm";
 import { Guid } from "guid-typescript";
 import LogIO from "../../log/log-io";
 import Queue from "queue";
-import Transaction from "./transactions/transaction";
+import Transaction from "./transactions/Transaction";
 import { DbOperation } from "./DBOperations";
 import Queriable from "../query/queriable";
 import Database from "./databaseStore";
@@ -60,16 +60,18 @@ export default class DBLog extends Log
             await Database.databaseByName(this.id).fromMultihash(log.head.payload.database);
 
             rollbackOperations.forEach((e) =>
-                Database.databaseByName(this.id).addToLog(
+                Database.databaseByName(this.id).addTransaction(
                     e.payload.transaction.operation,
                     e.payload.transaction.data,
                     true)
             );
             this._head = log.head.hash;
+
             await this.join(log);
             this._clock = new LamportClock(this.clock.id, this.head.clock.time);
-            if (Database.databaseByName(this.id).transactionsQueue.length <= 1) // if there is no other transaction
-                await PubSub.publish(this.id, (await this.toMultihash()).toString());
+
+            // Is this neccessary? Why we publish merged log?
+            Database.databaseByName(this.id).publishLog();
         }
 
         await this.join(log);
