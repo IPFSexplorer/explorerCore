@@ -1,5 +1,5 @@
 import Table from "../tables/table";
-import DBLog from "./DBLog";
+import DBLog from "./log/DBLog";
 import Queriable from "../query/queriable";
 import IdentityProvider from "orbit-db-identity-provider";
 import { DbOperation } from "./DBOperations";
@@ -18,6 +18,8 @@ import DBAccessController from "./AccessController/AccessController";
 import { PubSubMessageType } from "./PubSub/MessageType";
 import ITransaction from "./transactions/ITransaction";
 import TransactionsBulk from "./transactions/TransactionsBulk";
+import Entry from "../../log/entry";
+import { DBLogPayload } from "./log/DBLogPayload";
 
 export default class DatabaseInstance
 {
@@ -82,27 +84,27 @@ export default class DatabaseInstance
 
     }
 
-
     public async runTransaction(tx: ITransaction)
     {
         await tx.run(this);
 
-        let entry;
+        let entry: Entry;
         if (this.transactionsQueue.length <= 1) // if there is no other transaction
         {
             entry = await (await this.getOrCreateLog()).append({
                 transaction: tx,
                 database: await this.toMultihash(),
                 parent: this.log.head ? this.log.head.hash : null,
-                grantAccessTo: this.accessController.getNext()
-            });
+                grantAccessTo: this.accessController.getFirst()
+            } as DBLogPayload);
             await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
+            this.accessController.returnTicket()
         } else
         {
             entry = await (await this.getOrCreateLog()).append({
                 transaction: tx,
                 parent: this.log.head ? this.log.head.hash : null
-            });
+            } as DBLogPayload);
         }
 
         this.log.head = entry;
@@ -181,11 +183,11 @@ export default class DatabaseInstance
     }
 
 
-    public async syncLog(log)
+    public async syncLog(hash: string)
     {
         const tx = new Transaction({
             operation: DbOperation.Merge,
-            data: await DBLog.fromMultihash(this.identity, this.databaseName, log)
+            data: await DBLog.fromMultihash(this.identity, this.databaseName, hash)
         });
         await this.addTransaction(tx, true);
     }

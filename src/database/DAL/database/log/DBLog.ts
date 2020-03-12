@@ -1,18 +1,19 @@
-import Log from "../../log/log";
-import LamportClock from "../../log/lamport-clock";
-import DatabaseInstance from "./databaseInstance";
-import { SortByEntryHash } from "../../log/log-sorting";
-import Entry from "../../log/entry";
+import Log from "../../../log/log";
+import LamportClock from "../../../log/lamport-clock";
+import DatabaseInstance from "../databaseInstance";
+import { SortByEntryHash } from "../../../log/log-sorting";
+import Entry from "../../../log/entry";
 import { runInThisContext } from "vm";
 import { Guid } from "guid-typescript";
-import LogIO from "../../log/log-io";
+import LogIO from "../../../log/log-io";
 import Queue from "queue";
-import Transaction from "./transactions/Transaction";
-import { DbOperation } from "./DBOperations";
-import Queriable from "../query/queriable";
-import Database from "./databaseStore";
-import PubSub from "../../../ipfs/PubSub";
-import TransactionsBulk from "./transactions/TransactionsBulk";
+import Transaction from "../transactions/Transaction";
+import { DbOperation } from "../DBOperations";
+import Queriable from "../../query/queriable";
+import Database from "../databaseStore";
+import PubSub from "../../../../ipfs/PubSub";
+import TransactionsBulk from "../transactions/TransactionsBulk";
+import { DBLogPayload } from "./DBLogPayload";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -39,35 +40,36 @@ export default class DBLog extends Log
         while (thisHead.clock.time > otherHead.clock.time)
         {
             if (thisHead.identity.id === this.identity.id)
-                rollbackOperations.merge(thisHead.payload.transaction);
-            thisHead = this.get(thisHead.payload.parent);
+                rollbackOperations.merge(((thisHead.payload as DBLogPayload) as DBLogPayload).transaction);
+            thisHead = this.get(((thisHead.payload as DBLogPayload) as DBLogPayload).parent);
         }
 
         while (otherHead.clock.time > thisHead.clock.time)
-            otherHead = log.get(otherHead.payload.parent);
+            otherHead = log.get((otherHead.payload as DBLogPayload).parent);
 
         // now, this.Head and otherHead should equal
-        while (thisHead.payload.parent != otherHead.payload.parent)
+        while ((thisHead.payload as DBLogPayload).parent != (otherHead.payload as DBLogPayload).parent)
         {
             if (Entry.verify(this.identity.provider, thisHead))
-                rollbackOperations.merge(thisHead.payload.transaction);
-            otherHead = log.get(otherHead.payload.parent);
-            thisHead = this.get(thisHead.payload.parent);
+                rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
+            otherHead = log.get((otherHead.payload as DBLogPayload).parent);
+            thisHead = this.get((thisHead.payload as DBLogPayload).parent);
         }
 
         if (otherHead.hash > thisHead.hash)
         {
-            rollbackOperations.merge(thisHead.payload.transaction);
+            rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
             await Database.databaseByName(this.id).fromMultihash(log.head.payload.database);
 
             Database.databaseByName(this.id).addTransaction(rollbackOperations, true);
-            this._head = log.head.hash;
-
             await this.join(log);
+            this._head = log.head.hash;
             this._clock = new LamportClock(this.clock.id, this.head.clock.time);
 
             // Is this neccessary? Why we publish merged log?
             Database.databaseByName(this.id).publishLog();
+
+            return;
         }
 
         await this.join(log);

@@ -2,16 +2,23 @@ import Database from "../databaseStore";
 import PubSubMessage from "../PubSub/pubSubMessage";
 import IPFSconnector from "../../../../ipfs/IPFSConnector";
 import { PubSubMessageType } from "../PubSub/MessageType";
+import { delay } from "../../../../common";
+
+const TIMEOUT = 5000;
 
 export default class DBAccessController
 {
     private requests: Set<string>;
+    private resolver: (value?: void | PromiseLike<void>) => void;
+    private ticket: Promise<void>;
     databaseName: string;
+    accessChanged: boolean;
 
     constructor(databaseName: string)
     {
         this.requests = new Set<string>();
         this.databaseName = databaseName;
+        this.accessChanged = false;
     }
 
     requestAccess(from: string)
@@ -19,14 +26,41 @@ export default class DBAccessController
         this.requests.add(from);
     }
 
-    takenAccess(by: string)
+    async takenAccess(by: string)
     {
+        const { id } = await (await IPFSconnector.getInstanceAsync()).node.id();
+        if (id === by || (by === null && this.getFirst() === id))
+        {
+            this.resolver();
+        }
+
         this.requests.delete(by);
     }
 
-    getNext(): string
+    getFirst(): string
     {
         return this.requests.values().next().value;
+    }
+
+    public returnTicket()
+    {
+        this.ticket = null;
+    }
+
+    private getTicket()
+    {
+        if (this.ticket)
+        {
+            this.ticket = new Promise(async (resolve, reject) =>
+            {
+                this.resolver = resolve;
+                while (this.accessChanged)
+                    await delay(TIMEOUT);
+                
+                resolve()
+            });
+        }
+        return this.ticket;
     }
 
     async waitForAccess()
@@ -35,11 +69,9 @@ export default class DBAccessController
         this.requestAccess(id);
         await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage(PubSubMessageType.AccessRequest, id));
 
-        // TODO wait for accesss!!!!!!!!!
-        // if I am only one (or first one in queue) who is waiting for access and previous head was null, 
+        await this.getTicket();
 
         await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage(PubSubMessageType.AccessTaken, id));
-        this.takenAccess(id);
     }
 
 }

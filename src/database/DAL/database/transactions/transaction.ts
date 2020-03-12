@@ -3,7 +3,8 @@ import ITransaction from "./ITransaction";
 import DatabaseInstance from "../databaseInstance";
 import TransactionsBulk from "./TransactionsBulk";
 import Queriable from "../../query/queriable";
-import DBLog from "../DBLog";
+import DBLog from "../log/DBLog";
+import { DBLogPayload } from "../log/DBLogPayload";
 
 export default class Transaction implements ITransaction
 {
@@ -23,6 +24,7 @@ export default class Transaction implements ITransaction
 
     async run(database: DatabaseInstance)
     {
+        await database.accessController.waitForAccess();
         switch (this.operation)
         {
             case DbOperation.Create:
@@ -41,6 +43,7 @@ export default class Transaction implements ITransaction
 
             case DbOperation.Merge:
                 await database.log.merge(this.data as DBLog);
+                database.accessController.takenAccess((database.log.head.payload as DBLogPayload).grantAccessTo);
                 return;
 
 
