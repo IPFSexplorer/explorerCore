@@ -1,13 +1,17 @@
 import { PubSubMessageType } from "./MessageType";
+import { Serialize } from "serialazy";
 
 export default class PubSubMessage
 {
-    type: PubSubMessageType;
-    value: any;
 
-    constructor(type: PubSubMessageType, value: any)
+    @Serialize.Custom({
+        down: (type: PubSubMessageType) => type,
+        up: (type: string) => PubSubMessageType[type]
+    }) type: PubSubMessageType;
+    @Serialize() value: string;
+
+    constructor(init?: Partial<PubSubMessage>)
     {
-        this.type = type;
-        this.value = value;
+        Object.assign(this, init);
     }
 }

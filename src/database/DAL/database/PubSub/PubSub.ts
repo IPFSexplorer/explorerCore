@@ -2,6 +2,7 @@ import PubSubMessage from "./pubSubMessage";
 import PubSub from "../../../../ipfs/PubSub";
 import { PubSubMessageType } from "./MessageType";
 import Database from "../databaseStore";
+import { inflate, deflate } from "serialazy";
 
 export default class PubSubListener
 {
@@ -13,7 +14,7 @@ export default class PubSubListener
 
     async start()
     {
-        await PubSub.subscribe(this.databaseName, this.onEvent);
+        await PubSub.subscribe(this.databaseName, this.onEvent.bind(this));
         // TODO we should maybe send a message to other peers that we are new peer. Some of the other peers than could sent theirs heads
     }
 
@@ -24,7 +25,8 @@ export default class PubSubListener
 
     async publish(data: PubSubMessage)
     {
-        await PubSub.publish(this.databaseName, data);
+        console.log({ _: "PUB", ...data });
+        await PubSub.publish(this.databaseName, JSON.stringify(deflate(data)));
     }
 
     async onEvent(msg: {
@@ -34,7 +36,9 @@ export default class PubSubListener
         topicIDs: Array<String>;
     }): Promise<void>
     {
-        const message: PubSubMessage = JSON.parse(msg.data.toString());
+        const message: PubSubMessage = inflate(PubSubMessage, JSON.parse(msg.data.toString()));
+
+        console.log({ _: "SUB", ...message });
 
         switch (message.type)
         {

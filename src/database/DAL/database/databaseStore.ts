@@ -8,9 +8,10 @@ export default abstract class Database
     static DB: any;
     public static connect(databaseName: string, identity)
     {
-        this._databases[databaseName] = new DatabaseInstance();
-        this._databases[databaseName].databaseName = databaseName;
-        this._databases[databaseName].identity = identity;
+        this._databases[databaseName] = new DatabaseInstance({
+            databaseName,
+            identity
+        });
     }
 
     public static use(databaseName)

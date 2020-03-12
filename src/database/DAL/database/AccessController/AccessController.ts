@@ -4,7 +4,7 @@ import IPFSconnector from "../../../../ipfs/IPFSConnector";
 import { PubSubMessageType } from "../PubSub/MessageType";
 import { delay } from "../../../../common";
 
-const TIMEOUT = 5000;
+const TIMEOUT = 10000;
 
 export default class DBAccessController
 {
@@ -56,8 +56,8 @@ export default class DBAccessController
                 this.resolver = resolve;
                 while (this.accessChanged)
                     await delay(TIMEOUT);
-                
-                resolve()
+
+                resolve();
             });
         }
         return this.ticket;
@@ -67,11 +67,19 @@ export default class DBAccessController
     {
         const { id } = await (await IPFSconnector.getInstanceAsync()).node.id();
         this.requestAccess(id);
-        await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage(PubSubMessageType.AccessRequest, id));
+        await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage(
+            {
+                type: PubSubMessageType.AccessRequest,
+                value: id
+            }));
 
         await this.getTicket();
+        this.requests.delete(id);
 
-        await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage(PubSubMessageType.AccessTaken, id));
+        await Database.databaseByName(this.databaseName).pubSubListener.publish(new PubSubMessage({
+            type: PubSubMessageType.AccessTaken,
+            value: id
+        }));
     }
 
 }

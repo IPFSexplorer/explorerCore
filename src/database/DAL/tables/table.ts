@@ -7,28 +7,13 @@ import Queriable from "../query/queriable";
 export default class Table
 {
     @Serialize() public name: string;
-    @SerializeAnObjectOf(BTree) private indexes: { [property: string]: BTree<any, any>; };
-    @Serialize() private primaryIndex: string;
+    @SerializeAnObjectOf(BTree) public indexes: { [property: string]: BTree<any, any>; };
+    @Serialize() public primaryIndex: string;
 
 
-    constructor()
+    constructor(init?: Partial<Table>)
     {
-
-    }
-
-    public init(name: string, indexes, primaryKey: string)
-    {
-        this.name = name;
-        this.indexes = {};
-        for (const property in indexes)
-        {
-            this.indexes[property] = new BTree(
-                indexes[property].branching,
-                indexes[property].comparator,
-                indexes[property].keyGetter
-            );
-        }
-        this.primaryIndex = primaryKey;
+        Object.assign(this, init);
     }
 
     public async insert(entity: Queriable<any>)

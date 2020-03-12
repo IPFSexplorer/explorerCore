@@ -5,11 +5,31 @@ import TransactionsBulk from "./TransactionsBulk";
 import Queriable from "../../query/queriable";
 import DBLog from "../log/DBLog";
 import { DBLogPayload } from "../log/DBLogPayload";
+import { Serialize, inflate, deflate } from "serialazy";
 
+@Serialize.Type({
+    down: (tx: Transaction) =>
+    {
+        return {
+            type: tx.operation,
+            data: tx.data
+        };
+    },
+    up: (tx) =>
+    {
+        if (Array.isArray(tx))
+        {
+            return new TransactionsBulk(tx);
+        } else
+        {
+            return new Transaction(tx as object);
+        }
+    }
+})
 export default class Transaction implements ITransaction
 {
     operation: DbOperation;
-    data: object;
+    data: any;
 
     constructor(init?: Partial<Transaction>)
     {
@@ -24,7 +44,9 @@ export default class Transaction implements ITransaction
 
     async run(database: DatabaseInstance)
     {
+        console.log(`Start: ${this}`);
         await database.accessController.waitForAccess();
+        console.log(`Run: ${this}`);
         switch (this.operation)
         {
             case DbOperation.Create:
@@ -42,7 +64,8 @@ export default class Transaction implements ITransaction
                 break;
 
             case DbOperation.Merge:
-                await database.log.merge(this.data as DBLog);
+                const dbLog = await DBLog.fromMultihash(database.identity, database.databaseName, this.data);
+                await database.log.merge(dbLog);
                 database.accessController.takenAccess((database.log.head.payload as DBLogPayload).grantAccessTo);
                 return;
 
@@ -50,5 +73,12 @@ export default class Transaction implements ITransaction
             default:
                 throw Error(`wrong db operation ${this.operation}`);
         }
+        console.log(`Finish: ${this}`);
+        return true;
+    }
+
+    toString()
+    {
+        return `${this.operation}: ${this.data}`;
     }
 }

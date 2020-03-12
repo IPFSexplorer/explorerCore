@@ -4,10 +4,11 @@ import Transaction from "./Transaction";
 
 export default class TransactionsBulk implements ITransaction
 {
-    private transactions: ITransaction[];
-    constructor()
+    public transactions: ITransaction[];
+    constructor(init: Partial<TransactionsBulk> = { transactions: [] })
     {
-        this.transactions = [];
+        Object.assign(this, init);
+
     };
 
 
@@ -23,6 +24,13 @@ export default class TransactionsBulk implements ITransaction
         {
             await transaction.run(database);
         }
+        return true;
+    }
+
+
+    toString()
+    {
+        return this.transactions.reduce((str, t) => str + t.toString() + ", ", "");
     }
 
 }

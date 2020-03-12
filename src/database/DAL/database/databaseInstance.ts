@@ -1,9 +1,7 @@
 import Table from "../tables/table";
 import DBLog from "./log/DBLog";
 import Queriable from "../query/queriable";
-import IdentityProvider from "orbit-db-identity-provider";
 import { DbOperation } from "./DBOperations";
-import Log from "../../log/log";
 import { deflate, inflate, Serialize } from 'serialazy';
 import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { JsonMap } from "serialazy/lib/dist/types/json_type";
@@ -11,15 +9,14 @@ import { write, read } from "../../log/io";
 import Queue from "queue";
 import Transaction from "./transactions/Transaction";
 import PubSub from "../../../ipfs/PubSub";
-import { delay } from "../../../common";
 import PubSubMessage from "./PubSub/pubSubMessage";
 import PubSubListener from "./PubSub/PubSub";
 import DBAccessController from "./AccessController/AccessController";
 import { PubSubMessageType } from "./PubSub/MessageType";
 import ITransaction from "./transactions/ITransaction";
-import TransactionsBulk from "./transactions/TransactionsBulk";
 import Entry from "../../log/entry";
 import { DBLogPayload } from "./log/DBLogPayload";
+import BTree from "explorer-core/src/database/BTree/BTree";
 
 export default class DatabaseInstance
 {
@@ -46,17 +43,19 @@ export default class DatabaseInstance
     pubSubListener: PubSubListener;
     accessController: DBAccessController;
 
-    constructor()
+    constructor(init?: Partial<DatabaseInstance>)
     {
+        Object.assign(this, init);
         this.transactionsQueue = new Queue({
             concurrency: 1,
             autostart: true
         });
+        this.pubSubListener = new PubSubListener(this.databaseName);
+        this.pubSubListener.start();
 
         this.accessController = new DBAccessController(this.databaseName);
 
-        this.pubSubListener = new PubSubListener(this.databaseName);
-        this.pubSubListener.start();
+
     }
 
     public async getOrCreateLog()
@@ -86,29 +85,36 @@ export default class DatabaseInstance
 
     public async runTransaction(tx: ITransaction)
     {
-        await tx.run(this);
+        // do not add entry to the log for merge transaction
+        if (await tx.run(this))
+        {
+            let entry: Entry;
+            if (this.transactionsQueue.length <= 1) // if there is no other transaction
+            {
+                entry = await (await this.getOrCreateLog()).append({
+                    transaction: tx,
+                    database: await this.toMultihash(),
+                    parent: this.log.head ? this.log.head.hash : null,
+                    grantAccessTo: this.accessController.getFirst()
+                } as DBLogPayload);
+                await this.pubSubListener.publish(new PubSubMessage({
+                    type: PubSubMessageType.PublishVersion,
+                    value: (await this.log.toMultihash()).toString()
+                }));
 
-        let entry: Entry;
-        if (this.transactionsQueue.length <= 1) // if there is no other transaction
-        {
-            entry = await (await this.getOrCreateLog()).append({
-                transaction: tx,
-                database: await this.toMultihash(),
-                parent: this.log.head ? this.log.head.hash : null,
-                grantAccessTo: this.accessController.getFirst()
-            } as DBLogPayload);
-            await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
-            this.accessController.returnTicket()
-        } else
-        {
-            entry = await (await this.getOrCreateLog()).append({
-                transaction: tx,
-                parent: this.log.head ? this.log.head.hash : null
-            } as DBLogPayload);
+                this.accessController.returnTicket();
+                console.log(entry);
+            } else
+            {
+                entry = await (await this.getOrCreateLog()).append({
+                    transaction: tx,
+                    parent: this.log.head ? this.log.head.hash : null
+                } as DBLogPayload);
+            }
+
+            this.log.head = entry;
+            return entry;
         }
-
-        this.log.head = entry;
-        return entry;
     }
 
     public async create(entity: Queriable<any>)
@@ -147,11 +153,19 @@ export default class DatabaseInstance
     {
         if (!this.getTableByEntity(entity))
         {
-            const table = new Table();
-            table.init(entity.__TABLE_NAME__,
-                entity.__INDEXES__.indexes,
-                entity.__INDEXES__.primary);
-            this.tables[entity.__TABLE_NAME__] = table;
+            let indexes: { [property: string]: BTree<any, any>; } = {};
+            Object.keys(entity.__INDEXES__.indexes).map(k => indexes[k] = new BTree(
+                entity.__INDEXES__.indexes[k].branching,
+                entity.__INDEXES__.indexes[k].comparator,
+                entity.__INDEXES__.indexes[k].keyGetter
+            ));
+
+            this.tables[entity.__TABLE_NAME__] = new Table({
+                name: entity.__TABLE_NAME__,
+                primaryIndex: entity.__INDEXES__.primary,
+                indexes: indexes,
+
+            });
         }
 
         return this.getTableByEntity(entity);
@@ -178,16 +192,30 @@ export default class DatabaseInstance
     {
         if (this.transactionsQueue.length <= 1 || force) // if there is no other transaction
             await this.pubSubListener.publish(
-                new PubSubMessage(PubSubMessageType.PublishVersion, (await this.log.toMultihash()).toString())
+                new PubSubMessage(
+                    {
+                        type: PubSubMessageType.PublishVersion,
+                        value: (await this.log.toMultihash()).toString()
+                    }
+                )
             );
     }
 
 
     public async syncLog(hash: string)
     {
+        // // start merging
+
+        // this.transactionsQueue.stop();
+        // this.transactionsQueue.on("end", () =>
+        // {
+
+        // });
+        // this.transactionsQueue.stop();
+
         const tx = new Transaction({
             operation: DbOperation.Merge,
-            data: await DBLog.fromMultihash(this.identity, this.databaseName, hash)
+            data: hash
         });
         await this.addTransaction(tx, true);
     }

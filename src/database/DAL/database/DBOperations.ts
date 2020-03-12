@@ -1,7 +1,7 @@
 export enum DbOperation
 {
-    Create = "create",
-    Update = "update",
-    Delete = "delete",
-    Merge = "merge",
+    Create = "Create",
+    Update = "Update",
+    Delete = "Delete",
+    Merge = "Merge",
 }
