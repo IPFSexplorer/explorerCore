@@ -9,7 +9,7 @@ import SerializeAnArrayOf from "../../serialization/arraySerializer";
 export default class ipfsBtreeNodeChildren implements IBtreeNodeChildren
 {
 
-    @SerializeAnArrayOf(CID) items: Array<string>;
+    @SerializeAnArrayOf(String) items: Array<string>;
 
     constructor()
     {

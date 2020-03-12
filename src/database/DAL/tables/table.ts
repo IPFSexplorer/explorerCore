@@ -36,7 +36,9 @@ export default class Table
         const promises = [];
 
         // TODO change this to dag-json after https://github.com/ipld/js-dag-json/issues/24 is resolved
-        const cid = await write("dag-json", entity.toJson());
+        if (entity.toJson)
+            entity = entity.toJson() as unknown as Queriable<any>;
+        const cid = await write("dag-json", entity);
         for (const key in this.indexes)
         {
             const index = this.getIndex(key);

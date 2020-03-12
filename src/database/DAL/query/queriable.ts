@@ -1,33 +1,17 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
 import QueryPlanner from "../planners/queryPlanner";
-import DatabaseInstance from "../database/databaseInstance";
 import Database from "../database/databaseStore";
-import BTree from "../../BTree/BTree";
-import { Comparator, KeyGetter } from "../../BTree/types";
-import { deflate, Serialize, inflate } from "serialazy";
 import JsonType from "serialazy/lib/dist/types/json_type";
 
-type indexes = {
-    primary: string,
-    indexes: {
-        [property: string]: {
-            property: string,
-            branching: number,
-            comparator: Comparator<any>,
-            keyGetter: KeyGetter<any, any>;
-        };
-    },
-};
 
 export default class Queriable<T> extends BaseQuery<T> {
-    public __TABLE_NAME__: string;
-    public __INDEXES__: indexes;
-
+    TTAAABBLEE: string;
     constructor()
     {
         super();
         this.queryPlanner = new QueryPlanner(this.__TABLE_NAME__);
+        this.__TABLE_NAME__ = this.__TABLE_NAME__;
     }
 
     public where(propertyNameOrNestedQuery): PropertyCondition
@@ -50,13 +34,13 @@ export default class Queriable<T> extends BaseQuery<T> {
 
     public toJson(): JsonType
     {
-        const res = {};
+        const res = {
+            __TABLE_NAME__: this.__TABLE_NAME__
+        };
         for (const property in this)
         {
-            if (this.hasOwnProperty(property))
-            {
+            if (property != "__INDEXES__")
                 res[property as string] = this[property];
-            }
         }
         return res;
     }

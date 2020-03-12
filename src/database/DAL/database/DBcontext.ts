@@ -15,4 +15,11 @@ export default class DBcontext
         await fn(this.database);
         Database.unselect();
     }
+
+    public executeSync(fn: (db) => void)
+    {
+        Database.select(this.database.databaseName);
+        fn(this.database);
+        Database.unselect();
+    }
 }

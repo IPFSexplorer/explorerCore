@@ -11,6 +11,7 @@ import { write, read } from "../../log/io";
 import Queue from "queue";
 import Transaction from "./transactions/transaction";
 import PubSub from "../../../ipfs/PubSub";
+import { delay } from "../../../common";
 
 export default class DatabaseInstance
 {
@@ -30,12 +31,8 @@ export default class DatabaseInstance
         }
     }, { optional: true })
     public log: DBLog;
-    private transactionsQueue: Queue;
+    public transactionsQueue: Queue;
 
-
-    // only local operation used when we want to fast apply migrations
-    private localLog: Log;
-    private time: number;
     @Serialize() public databaseName: string;
     public identity: any;
 
@@ -54,6 +51,7 @@ export default class DatabaseInstance
             this.log = new DBLog(this.identity, this.databaseName);
 
             await this.startSubscribe();
+            this.startBroadcast();
         }
 
         return this.log;
@@ -61,7 +59,7 @@ export default class DatabaseInstance
 
     public async addToLog(operation, value = null, toBeginning = false)
     {
-
+        console.log({ type: "ADD", operation, value });
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
 
         // TODO add reject on error
@@ -69,8 +67,13 @@ export default class DatabaseInstance
         {
             queueFunction.call(this.transactionsQueue, async () =>
             {
+                console.log({ type: "START", operation, value });
+                console.time('TransactionRun');
+                await this.runTransaction(new Transaction(operation, value));
+                console.timeEnd('TransactionRun');
+                console.log({ type: "FINISH", "queueLength": this.transactionsQueue.length, operation, value });
                 resolve(
-                    await this.runTransaction(new Transaction(operation, value))
+                    { operation, value }
                 );
             });
         });
@@ -105,14 +108,26 @@ export default class DatabaseInstance
                 throw Error(`wrong db operation ${tx.operation}`);
         }
 
-        const entry = await (await this.getOrCreateLog()).append({
-            transaction: tx,
-            database: await this.toMultihash(),
-            parent: this.log.head ? this.log.head.hash : null
-        });
+        let entry;
+
+
+        if (this.transactionsQueue.length <= 1) // if there is no other transaction
+        {
+            entry = await (await this.getOrCreateLog()).append({
+                transaction: tx,
+                database: await this.toMultihash(),
+                parent: this.log.head ? this.log.head.hash : null
+            });
+            await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
+        } else
+        {
+            entry = await (await this.getOrCreateLog()).append({
+                transaction: tx,
+                parent: this.log.head ? this.log.head.hash : null
+            });
+        }
 
         this.log.head = entry;
-        await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
         return entry;
     }
 
@@ -121,6 +136,16 @@ export default class DatabaseInstance
         return await PubSub.subscribe(this.databaseName, (msg) =>
             this.syncLog(msg.data.toString())
         );
+    }
+
+    public async startBroadcast()
+    {
+        while (true)
+        {
+            if (this.transactionsQueue.length == 0) // if there is no other transaction
+                await PubSub.publish(this.databaseName, (await this.log.toMultihash()).toString());
+            await delay(5000);
+        }
     }
 
     public async create(entity: Queriable<any>)
@@ -200,7 +225,8 @@ export default class DatabaseInstance
 
     public async syncLog(log)
     {
-        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), false);
+        console.log("Subscribing " + log);
+        await this.addToLog(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
     }
 
     public async waitForAllTransactionsDone()

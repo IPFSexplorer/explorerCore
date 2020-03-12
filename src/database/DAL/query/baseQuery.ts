@@ -1,8 +1,23 @@
 import QueryPlanner from "../planners/queryPlanner";
 import { Filter } from "./types";
+import { Comparator, KeyGetter } from "../../BTree/types";
+
+type indexes = {
+    primary: string,
+    indexes: {
+        [property: string]: {
+            property: string,
+            branching: number,
+            comparator: Comparator<any>,
+            keyGetter: KeyGetter<any, any>;
+        };
+    },
+};
 
 export default class BaseQuery<T> {
     protected queryPlanner: QueryPlanner;
+    public __TABLE_NAME__: string;
+    public __INDEXES__: indexes;
 
     public async all() {
         return await this.queryPlanner.getAll();

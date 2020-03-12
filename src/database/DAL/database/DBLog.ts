@@ -37,7 +37,7 @@ export default class DBLog extends Log
 
         while (thisHead.clock.time > otherHead.clock.time)
         {
-            if (Entry.verify(this.identity.provider, thisHead))
+            if (thisHead.identity.id === this.identity.id)
                 rollbackOperations.push(thisHead);
             thisHead = this.get(thisHead.payload.parent);
         }
@@ -66,11 +66,16 @@ export default class DBLog extends Log
                     true)
             );
             this._head = log.head.hash;
+            await this.join(log);
+            this._clock = new LamportClock(this.clock.id, this.head.clock.time);
+            if (Database.databaseByName(this.id).transactionsQueue.length <= 1) // if there is no other transaction
+                await PubSub.publish(this.id, (await this.toMultihash()).toString());
         }
 
         await this.join(log);
+        if (this.head.clock.time < log.head.clock.time)
+            this._head = log.head.hash;
         this._clock = new LamportClock(this.clock.id, this.head.clock.time);
-        await PubSub.publish(this.id, (await this.toMultihash()).toString());
         return;
     }
 

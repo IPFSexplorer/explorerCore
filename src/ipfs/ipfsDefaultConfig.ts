@@ -42,9 +42,6 @@ export function browserConfigAsync()
                     "/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star"
                 ]
             },
-            Pubsub: {
-                emitSelf: false
-            }
         },
         ipld: {
             formats: [cbor, require("ipld-dag-pb")]
@@ -61,6 +58,9 @@ export function browserConfigAsync()
                     webRTCStar: {
                         enabled: true
                     }
+                },
+                pubsub: {
+                    emitSelf: false
                 }
             }
         }
