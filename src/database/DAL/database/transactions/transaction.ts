@@ -10,10 +10,9 @@ export default class Transaction implements ITransaction
     operation: DbOperation;
     data: object;
 
-    constructor(operation, data)
+    constructor(init?: Partial<Transaction>)
     {
-        this.operation = operation;
-        this.data = data;
+        Object.assign(this, init);
     }
     merge(transaction: ITransaction)
     {

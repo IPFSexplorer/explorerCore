@@ -12,6 +12,7 @@ import { DbOperation } from "./DBOperations";
 import Queriable from "../query/queriable";
 import Database from "./databaseStore";
 import PubSub from "../../../ipfs/PubSub";
+import TransactionsBulk from "./transactions/TransactionsBulk";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -33,12 +34,12 @@ export default class DBLog extends Log
     {
         let thisHead: Entry = this.head;
         let otherHead: Entry = log.head;
-        const rollbackOperations = [];
+        const rollbackOperations = new TransactionsBulk();
 
         while (thisHead.clock.time > otherHead.clock.time)
         {
             if (thisHead.identity.id === this.identity.id)
-                rollbackOperations.push(thisHead);
+                rollbackOperations.merge(thisHead.payload.transaction);
             thisHead = this.get(thisHead.payload.parent);
         }
 
@@ -49,22 +50,17 @@ export default class DBLog extends Log
         while (thisHead.payload.parent != otherHead.payload.parent)
         {
             if (Entry.verify(this.identity.provider, thisHead))
-                rollbackOperations.push(thisHead);
+                rollbackOperations.merge(thisHead.payload.transaction);
             otherHead = log.get(otherHead.payload.parent);
             thisHead = this.get(thisHead.payload.parent);
         }
 
         if (otherHead.hash > thisHead.hash)
         {
-            rollbackOperations.push(thisHead);
+            rollbackOperations.merge(thisHead.payload.transaction);
             await Database.databaseByName(this.id).fromMultihash(log.head.payload.database);
 
-            rollbackOperations.forEach((e) =>
-                Database.databaseByName(this.id).addTransaction(
-                    e.payload.transaction.operation,
-                    e.payload.transaction.data,
-                    true)
-            );
+            Database.databaseByName(this.id).addTransaction(rollbackOperations, true);
             this._head = log.head.hash;
 
             await this.join(log);

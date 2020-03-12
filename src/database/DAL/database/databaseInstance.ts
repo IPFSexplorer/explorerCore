@@ -17,6 +17,7 @@ import PubSubListener from "./PubSub/PubSub";
 import DBAccessController from "./AccessController/AccessController";
 import { PubSubMessageType } from "./PubSub/MessageType";
 import ITransaction from "./transactions/ITransaction";
+import TransactionsBulk from "./transactions/TransactionsBulk";
 
 export default class DatabaseInstance
 {
@@ -66,9 +67,8 @@ export default class DatabaseInstance
         return this.log;
     }
 
-    public async addTransaction(operation, value = null, toBeginning = false)
+    public async addTransaction(transaction: ITransaction, toBeginning = false)
     {
-        console.log({ type: "ADD", operation, value });
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
 
         // TODO add reject on error
@@ -76,14 +76,7 @@ export default class DatabaseInstance
         {
             queueFunction.call(this.transactionsQueue, async () =>
             {
-                console.log({ type: "START", operation, value });
-                console.time('TransactionRun');
-                await this.runTransaction(new Transaction(operation, value));
-                console.timeEnd('TransactionRun');
-                console.log({ type: "FINISH", "queueLength": this.transactionsQueue.length, operation, value });
-                resolve(
-                    { operation, value }
-                );
+                resolve(await this.runTransaction(transaction));
             });
         });
 
@@ -118,7 +111,8 @@ export default class DatabaseInstance
 
     public async create(entity: Queriable<any>)
     {
-        await this.addTransaction(DbOperation.Create, entity);
+        const tx = new Transaction({ operation: DbOperation.Create, data: entity });
+        await this.addTransaction(tx);
     }
 
     public update(table, address, newData)
@@ -189,7 +183,11 @@ export default class DatabaseInstance
 
     public async syncLog(log)
     {
-        await this.addTransaction(DbOperation.Merge, await DBLog.fromMultihash(this.identity, this.databaseName, log), true);
+        const tx = new Transaction({
+            operation: DbOperation.Merge,
+            data: await DBLog.fromMultihash(this.identity, this.databaseName, log)
+        });
+        await this.addTransaction(tx, true);
     }
 
     public async waitForAllTransactionsDone()
