@@ -14,6 +14,7 @@ import Database from "../databaseStore";
 import PubSub from "../../../../ipfs/PubSub";
 import TransactionsBulk from "../transactions/TransactionsBulk";
 import { DBLogPayload } from "./DBLogPayload";
+import { EventEmitter } from "events";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 

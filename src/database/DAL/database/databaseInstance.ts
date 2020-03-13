@@ -16,7 +16,9 @@ import { PubSubMessageType } from "./PubSub/MessageType";
 import ITransaction from "./transactions/ITransaction";
 import Entry from "../../log/entry";
 import { DBLogPayload } from "./log/DBLogPayload";
-import BTree from "explorer-core/src/database/BTree/BTree";
+import BTree from "../../BTree/BTree";
+import AsyncLock from "async-lock";
+
 
 export default class DatabaseInstance
 {
@@ -46,6 +48,7 @@ export default class DatabaseInstance
     constructor(init?: Partial<DatabaseInstance>)
     {
         Object.assign(this, init);
+        this.log = new DBLog(this.identity, this.databaseName);
         this.transactionsQueue = new Queue({
             concurrency: 1,
             autostart: true
@@ -57,17 +60,6 @@ export default class DatabaseInstance
 
 
     }
-
-    public async getOrCreateLog()
-    {
-        if (!this.log)
-        {
-            this.log = new DBLog(this.identity, this.databaseName);
-        }
-
-        return this.log;
-    }
-
     public async addTransaction(transaction: ITransaction, toBeginning = false)
     {
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
@@ -91,7 +83,7 @@ export default class DatabaseInstance
             let entry: Entry;
             if (this.transactionsQueue.length <= 1) // if there is no other transaction
             {
-                entry = await (await this.getOrCreateLog()).append({
+                entry = await this.log.append({
                     transaction: tx,
                     database: await this.toMultihash(),
                     parent: this.log.head ? this.log.head.hash : null,
@@ -106,7 +98,7 @@ export default class DatabaseInstance
                 console.log(entry);
             } else
             {
-                entry = await (await this.getOrCreateLog()).append({
+                entry = await this.log.append({
                     transaction: tx,
                     parent: this.log.head ? this.log.head.hash : null
                 } as DBLogPayload);
@@ -204,20 +196,16 @@ export default class DatabaseInstance
 
     public async syncLog(hash: string)
     {
-        // // start merging
 
-        // this.transactionsQueue.stop();
-        // this.transactionsQueue.on("end", () =>
-        // {
+        var lock = new AsyncLock();
 
-        // });
-        // this.transactionsQueue.stop();
+        lock.acquire(this.databaseName, async () =>
+        {
+            const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
+            await this.log.merge(dbLog);
 
-        const tx = new Transaction({
-            operation: DbOperation.Merge,
-            data: hash
         });
-        await this.addTransaction(tx, true);
+        return;
     }
 
     public async waitForAllTransactionsDone()

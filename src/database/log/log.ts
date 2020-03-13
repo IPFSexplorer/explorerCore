@@ -9,6 +9,7 @@ import EntryIndex from "./entry-index";
 import { isDefined } from "./utils/is-defined";
 import { findUniques } from "./utils/find-uniques";
 import TimeIndex from "./time-index";
+import { EventEmitter } from "events";
 const randomId = () => new Date().getTime().toString();
 const getHash = (e) => e.hash;
 const flatMap = (res: string | any[], acc: any) => res.concat(acc);
@@ -31,7 +32,7 @@ const uniqueEntriesReducer = (res, acc) =>
  * "A comprehensive study of Convergent and Commutative Replicated Data Types"
  * https://hal.inria.fr/inria-00555588
  */
-export default class Log
+export default class Log extends EventEmitter
 {
     protected _sortFn: (a: any, b: any) => any;
     protected _id: string;
@@ -64,6 +65,7 @@ export default class Log
         { logId = undefined, access = undefined, entries = undefined, heads = undefined, clock = undefined, sortFn = undefined, concurrency = undefined } = {}
     )
     {
+        super();
         if (!isDefined(identity))
         {
             throw new Error("Identity is required");
@@ -387,6 +389,8 @@ export default class Log
         this._headsIndex[entry.hash] = entry;
         // Update the length
         this._length++;
+
+        this.emit("change");
         return entry;
     }
 
@@ -575,6 +579,8 @@ export default class Log
             this.clock.id,
             Math.max(this.clock.time, maxClock)
         );
+
+        this.emit("change");
         return this;
     }
 

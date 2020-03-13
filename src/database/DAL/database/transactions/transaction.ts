@@ -6,6 +6,7 @@ import Queriable from "../../query/queriable";
 import DBLog from "../log/DBLog";
 import { DBLogPayload } from "../log/DBLogPayload";
 import { Serialize, inflate, deflate } from "serialazy";
+import AsyncLock from "async-lock";
 
 @Serialize.Type({
     down: (tx: Transaction) =>
@@ -17,12 +18,15 @@ import { Serialize, inflate, deflate } from "serialazy";
     },
     up: (tx) =>
     {
-        if (Array.isArray(tx))
+        if (tx.hasOwnProperty("transactions"))
         {
-            return new TransactionsBulk(tx);
+            return new TransactionsBulk(
+                {
+                    transactions: (tx as unknown as TransactionsBulk).transactions.map(tx => new Transaction(tx))
+                });
         } else
         {
-            return new Transaction(tx as object);
+            return new Transaction(tx);
         }
     }
 })
@@ -44,41 +48,38 @@ export default class Transaction implements ITransaction
 
     async run(database: DatabaseInstance)
     {
-        console.log(`Start: ${this}`);
+        //console.log(`Start: ${this}`);
         await database.accessController.waitForAccess();
-        console.log(`Run: ${this}`);
-        switch (this.operation)
+        //console.log(`Run: ${this}`);
+
+        var lock = new AsyncLock();
+        lock.acquire(database.databaseName, async () =>
         {
-            case DbOperation.Create:
-                await database
-                    .getOrCreateTableByEntity(this.data as Queriable<any>)
-                    .insert(this.data as Queriable<any>);
-                break;
+            switch (this.operation)
+            {
+                case DbOperation.Create:
+                    await database
+                        .getOrCreateTableByEntity(this.data as Queriable<any>)
+                        .insert(this.data as Queriable<any>);
+                    break;
 
-            case DbOperation.Delete:
+                case DbOperation.Delete:
+                    break;
 
-                break;
+                case DbOperation.Update:
+                    break;
 
-            case DbOperation.Update:
+                default:
+                    throw Error(`wrong db operation ${this.operation}`);
+            }
+        });
 
-                break;
-
-            case DbOperation.Merge:
-                const dbLog = await DBLog.fromMultihash(database.identity, database.databaseName, this.data);
-                await database.log.merge(dbLog);
-                database.accessController.takenAccess((database.log.head.payload as DBLogPayload).grantAccessTo);
-                return;
-
-
-            default:
-                throw Error(`wrong db operation ${this.operation}`);
-        }
-        console.log(`Finish: ${this}`);
+        //console.log(`Finish: ${this}`);
         return true;
     }
 
-    toString()
+    toString(payloadMapper: (arg0: any) => any = null): string
     {
-        return `${this.operation}: ${this.data}`;
+        return `${this.operation}: ${(payloadMapper ? payloadMapper(this.data) : this.data)}`;
     }
 }

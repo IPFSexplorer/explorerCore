@@ -28,9 +28,9 @@ export default class TransactionsBulk implements ITransaction
     }
 
 
-    toString()
+    toString(payloadMapper: (arg0: any) => any = null): string
     {
-        return this.transactions.reduce((str, t) => str + t.toString() + ", ", "");
+        return this.transactions.reduce((str, t) => str + t.toString(payloadMapper) + ", ", "");
     }
 
 }
