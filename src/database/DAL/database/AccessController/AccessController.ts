@@ -4,8 +4,7 @@ import IPFSconnector from "../../../../ipfs/IPFSConnector";
 import { PubSubMessageType } from "../PubSub/MessageType";
 import { delay } from "../../../../common";
 import { EventEmitter } from "events";
-import AccessBroadcaster from "explorer-core/src/database/DAL/database/AccessController/AccessBroadcaster";
-import AccessController from "explorer-core/src/database/log/default-access-controller";
+import AccessBroadcaster from "./AccessBroadcaster";
 
 const TIMEOUT = 10000;
 const WAIT_FOR_MORE_TRANSACTIONS = 3000;

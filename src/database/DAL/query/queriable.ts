@@ -6,12 +6,10 @@ import JsonType from "serialazy/lib/dist/types/json_type";
 
 
 export default class Queriable<T> extends BaseQuery<T> {
-    TTAAABBLEE: string;
     constructor()
     {
         super();
-        this.queryPlanner = new QueryPlanner(this.__TABLE_NAME__);
-        this.__TABLE_NAME__ = this.__TABLE_NAME__;
+        this.queryPlanner = new QueryPlanner(this.constructor.name);
     }
 
     public where(propertyNameOrNestedQuery): PropertyCondition
@@ -32,15 +30,14 @@ export default class Queriable<T> extends BaseQuery<T> {
         return await Database.selectedDatabase.create(this);
     }
 
+    // TODO remove toJson method and use serialazy
     public toJson(): JsonType
     {
         const res = {
-            __TABLE_NAME__: this.__TABLE_NAME__
         };
         for (const property in this)
         {
-            if (property != "__INDEXES__")
-                res[property as string] = this[property];
+            res[property as string] = this[property];
         }
         return res;
     }

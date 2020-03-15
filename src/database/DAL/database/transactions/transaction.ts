@@ -16,13 +16,13 @@ import AsyncLock from "async-lock";
             data: tx.data
         };
     },
-    up: (tx) =>
+    up: (tx: any) =>
     {
         if (tx.hasOwnProperty("transactions"))
         {
             return new TransactionsBulk(
                 {
-                    transactions: (tx as unknown as TransactionsBulk).transactions.map(tx => inflate(Transaction, tx))
+                    transactions: (tx).transactions.map(tx => inflate(Transaction, tx))
                 });
         } else
         {

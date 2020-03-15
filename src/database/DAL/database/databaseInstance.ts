@@ -18,6 +18,7 @@ import Entry from "../../log/entry";
 import { DBLogPayload } from "./log/DBLogPayload";
 import BTree from "../../BTree/BTree";
 import AsyncLock from "async-lock";
+import IndexMap from "../indexMap";
 
 
 export default class DatabaseInstance
@@ -136,8 +137,8 @@ export default class DatabaseInstance
 
     public getTableByEntity(entity: Queriable<any>): Table
     {
-        if (this.tables.hasOwnProperty(entity.__TABLE_NAME__))
-            return this.tables[entity.__TABLE_NAME__];
+        if (this.tables.hasOwnProperty(entity.constructor.name))
+            return this.tables[entity.constructor.name];
         else return null;
     }
 
@@ -145,18 +146,21 @@ export default class DatabaseInstance
     {
         if (!this.getTableByEntity(entity))
         {
-            let indexes: { [property: string]: BTree<any, any>; } = {};
-            Object.keys(entity.__INDEXES__.indexes).map(k => indexes[k] = new BTree(
-                entity.__INDEXES__.indexes[k].branching,
-                entity.__INDEXES__.indexes[k].comparator,
-                entity.__INDEXES__.indexes[k].keyGetter
-            ));
+            const indexes = {};
 
-            this.tables[entity.__TABLE_NAME__] = new Table({
-                name: entity.__TABLE_NAME__,
-                primaryIndex: entity.__INDEXES__.primary,
+            for (const property in IndexMap.getIndexes(entity).indexes)
+            {
+                indexes[property] = new BTree(
+                    IndexMap.getIndexes(entity).indexes[property].branching,
+                    IndexMap.getIndexes(entity).indexes[property].comparator,
+                    IndexMap.getIndexes(entity).indexes[property].keyGetter
+                );
+            }
+
+            this.tables[entity.constructor.name] = new Table({
+                name: entity.constructor.name,
+                primaryIndex: IndexMap.getPrimary(entity),
                 indexes: indexes,
-
             });
         }
 

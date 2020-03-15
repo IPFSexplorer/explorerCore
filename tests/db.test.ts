@@ -9,24 +9,23 @@ import Database from "../src/database/DAL/database/databaseStore";
 import IPFSconnector from "../src/ipfs/IPFSConnector";
 import { randomPortsConfigAsync } from "../src/ipfs/ipfsDefaultConfig";
 import { DEFAULT_COMPARATOR } from "../src/database/BTree/btree";
-import DBLog from "../src/database/DAL/database/DBLog";
 import DatabaseInstance from "../src/database/DAL/database/databaseInstance";
 import IdentityProvider from "orbit-db-identity-provider";
 import { delay } from "../src/common";
+import ForeignKey from "../src/database/DAL/foreignKey";
 
 
 class User extends Queriable<User> {
     @PrimaryKey()
     name: string;
 
-    @Index()
-    age: number;
+
+    age: ForeignKey<Numberr>;
 
     constructor(name, age)
     {
         super();
         this.name = name;
-        this.age = age;
     }
 }
 
@@ -51,6 +50,20 @@ describe("Btree", () =>
         });
     });
 
+    it('FK test', async () =>
+    {
+        const n = new Numberr();
+        n.value = 22;
+
+        const u = new User("matus", 10);
+        u.age = new ForeignKey<Numberr>();
+        u.age.set(n);
+
+
+        console.log(await u.age.get());
+    });
+
+
     it('use DB', async () =>
     {
         Database.connect("testDB", "user");
@@ -66,9 +79,8 @@ describe("Btree", () =>
 
             await Promise.all(promises);
 
-            const db1 = await Database.selectedDatabase.getLog();
+            const db1 = await Database.selectedDatabase;
             console.log(db1);
-            await Database.selectedDatabase.syncLog(db1);
         });
     }, 500000);
 
