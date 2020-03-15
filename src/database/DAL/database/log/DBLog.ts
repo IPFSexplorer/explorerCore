@@ -34,9 +34,17 @@ export default class DBLog extends Log
 
     public async merge(log: DBLog)
     {
+        console.time("merge");
         let thisHead: Entry = this.head;
         let otherHead: Entry = log.head;
         const rollbackOperations = new TransactionsBulk();
+
+        if (!thisHead)
+        {
+            await this.migrate(log, rollbackOperations);
+            console.timeEnd("merge");
+            return;
+        }
 
         while (thisHead.clock.time > otherHead.clock.time)
         {
@@ -51,7 +59,7 @@ export default class DBLog extends Log
         // now, this.Head and otherHead should equal
         while ((thisHead.payload as DBLogPayload).parent != (otherHead.payload as DBLogPayload).parent)
         {
-            if (Entry.verify(this.identity.provider, thisHead))
+            if (thisHead.identity.id === this.identity.id)
                 rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
             otherHead = log.get((otherHead.payload as DBLogPayload).parent);
             thisHead = this.get((thisHead.payload as DBLogPayload).parent);
@@ -59,25 +67,43 @@ export default class DBLog extends Log
 
         if (otherHead.hash > thisHead.hash)
         {
-            rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
-            await Database.databaseByName(this.id).fromMultihash(log.head.payload.database);
+            if (thisHead.identity.id === this.identity.id)
+                rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
+            await this.migrate(log, rollbackOperations);
 
-            Database.databaseByName(this.id).addTransaction(rollbackOperations, true);
+            // await Database.databaseByName(this.id).publishLog();
+        } else
+        {
             await this.join(log);
-            this._head = log.head.hash;
+            if (this.head.clock.time < log.head.clock.time)
+            {
+                this._head = log.head.hash;
+            }
             this._clock = new LamportClock(this.clock.id, this.head.clock.time);
-
-            // Is this neccessary? Why we publish merged log?
-            Database.databaseByName(this.id).publishLog();
-
-            return;
         }
+        console.timeEnd("merge");
+    }
 
+    public getHeadList()
+    {
+        const res = [];
+        let h = this.head;
+        while (h)
+        {
+            res.push(h);
+            h = h.payload.parent;
+        }
+        return res;
+    }
+
+    private async migrate(log: DBLog, rollbackOperations: TransactionsBulk)
+    {
+        await Database.databaseByName(this.id).fromMultihash((log.head.payload as DBLogPayload).database);
+        if (rollbackOperations.length > 0)
+            Database.databaseByName(this.id).addTransaction(rollbackOperations, true);
         await this.join(log);
-        if (this.head.clock.time < log.head.clock.time)
-            this._head = log.head.hash;
+        this._head = log.head.hash;
         this._clock = new LamportClock(this.clock.id, this.head.clock.time);
-        return;
     }
 
     public toJSON()
@@ -87,6 +113,14 @@ export default class DBLog extends Log
             ... super.toJSON()
         };
     }
+
+    async append(data: any, pointerCount = 1, pin = false): Promise<Entry>
+    {
+        const entry = await super.append(data, pointerCount, pin);
+        this.head = entry;
+        return entry;
+    }
+
 
     public static async fromMultihash(
         identity: any,

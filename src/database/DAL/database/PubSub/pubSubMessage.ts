@@ -8,7 +8,7 @@ export default class PubSubMessage
         down: (type: PubSubMessageType) => type,
         up: (type: string) => PubSubMessageType[type]
     }) type: PubSubMessageType;
-    @Serialize() value: string;
+    @Serialize({ nullable: true }) value: string;
 
     constructor(init?: Partial<PubSubMessage>)
     {

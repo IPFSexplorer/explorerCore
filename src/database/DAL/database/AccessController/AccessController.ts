@@ -4,9 +4,11 @@ import IPFSconnector from "../../../../ipfs/IPFSConnector";
 import { PubSubMessageType } from "../PubSub/MessageType";
 import { delay } from "../../../../common";
 import { EventEmitter } from "events";
-import AccessRequestBroadcaster from "./AccessRequestBroadcaster";
+import AccessBroadcaster from "explorer-core/src/database/DAL/database/AccessController/AccessBroadcaster";
+import AccessController from "explorer-core/src/database/log/default-access-controller";
 
-const TIMEOUT = 5000;
+const TIMEOUT = 10000;
+const WAIT_FOR_MORE_TRANSACTIONS = 3000;
 
 export default class DBAccessController extends EventEmitter
 {
@@ -15,6 +17,8 @@ export default class DBAccessController extends EventEmitter
     private ticket: Promise<void>;
     databaseName: string;
     accessChanged: boolean;
+    _accessBroadcaster: AccessBroadcaster;
+    id: string;
 
     constructor(databaseName: string)
     {
@@ -30,72 +34,91 @@ export default class DBAccessController extends EventEmitter
         this.emit("change", this.requests);
     }
 
-    async takenAccess(by: string)
+    takenAccess(peerId: string)
     {
+        this.accessChanged = true;
+        this.requests.delete(peerId);
 
-        const { id } = await (await IPFSconnector.getInstanceAsync()).node.id();
-        if (id === by || (by === null && this.getFirst() === id))
+        this.emit("change", this.requests);
+    }
+
+    async accessGranted(to: string, from: string)
+    {
+        if (to === this.id)
         {
-            console.log("somebody give me access");
             if (this.ticket)
             {
+                console.log("access given");
                 this.resolver();
             }
             else
             {
-                // TODO grant access to somebody else because I dont want it
+                console.log("give accesss to sombeody else");
+                await this.returnTicket();
             }
         }
-
-        this.accessChanged = true;
-        this.requests.delete(by);
-        this.emit("change", this.requests);
     }
+
 
     getFirst(): string
     {
         return this.requests.values().next().value;
     }
 
-    public returnTicket()
+    async getAccessBroadcasterAsync()
     {
-        this.ticket = null;
+        if (!this._accessBroadcaster)
+        {
+            const { id } = await (await IPFSconnector.getInstanceAsync()).node.id();
+            this.id = id;
+            console.log(id);
+            this._accessBroadcaster = new AccessBroadcaster(this.databaseName, id);
+        }
+        return this._accessBroadcaster;
     }
 
-    private getTicket(id)
+    public async returnTicket()
+    {
+        this.ticket = null;
+        await (await this.getAccessBroadcasterAsync()).return(this.getFirst());
+    }
+
+    private async getTicket()
     {
         if (!this.ticket)
         {
-            const accessRequestBroadcaster = new AccessRequestBroadcaster(this.databaseName, id, true);
             this.ticket = new Promise(async function (resolve, reject) 
             {
                 this.resolver = resolve;
-                while (this.accessChanged)
+
+                await (await this.getAccessBroadcasterAsync()).request();
+                this.requestAccess(this.id);
+
+                await delay(WAIT_FOR_MORE_TRANSACTIONS);
+
+                while (this.accessChanged && ((this.requests as Set<string>).size > 1) && this.getFirst() != this.id)
                 {
                     this.accessChanged = false;
                     await delay(TIMEOUT);
                 }
 
-                console.log("long time nobody takes access");
+                console.log("long time nobody takes access or queue is empty");
                 resolve();
             }.bind(this));
 
-            this.ticket.finally(() =>
+            this.ticket.finally(async () =>
             {
-                accessRequestBroadcaster.stop();
+                this.takenAccess(this.id);
+                await (await this.getAccessBroadcasterAsync()).take();
             });
         }
+
         return this.ticket;
     }
 
     async waitForAccess()
     {
-        const { id } = await (await IPFSconnector.getInstanceAsync()).node.id();
-        this.requestAccess(id);
-
-        await this.getTicket(id);
-        this.requests.delete(id);
-        this.accessChanged = true;
+        await this.getTicket();
     }
 
 }

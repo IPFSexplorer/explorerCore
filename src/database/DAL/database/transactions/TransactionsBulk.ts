@@ -8,19 +8,21 @@ export default class TransactionsBulk implements ITransaction
     constructor(init: Partial<TransactionsBulk> = { transactions: [] })
     {
         Object.assign(this, init);
-
     };
-
-
 
     merge(transaction: ITransaction)
     {
         this.transactions.push(transaction);
     }
 
+    get length()
+    {
+        return this.transactions.length;
+    }
+
     async run(database: DatabaseInstance)
     {
-        for (const transaction of this.transactions)
+        for (const transaction of this.transactions.reverse())
         {
             await transaction.run(database);
         }

@@ -44,10 +44,13 @@ export default class DatabaseInstance
     identity: any;
     pubSubListener: PubSubListener;
     accessController: DBAccessController;
+    private _lock: any;
 
     constructor(init?: Partial<DatabaseInstance>)
     {
         Object.assign(this, init);
+        this._lock = new AsyncLock();
+
         this.log = new DBLog(this.identity, this.databaseName);
         this.transactionsQueue = new Queue({
             concurrency: 1,
@@ -77,36 +80,33 @@ export default class DatabaseInstance
 
     public async runTransaction(tx: ITransaction)
     {
-        // do not add entry to the log for merge transaction
-        if (await tx.run(this))
+        await tx.run(this);
+
+        let entry: Entry;
+        if (this.transactionsQueue.length <= 1) // if there is no other transaction
         {
-            let entry: Entry;
-            if (this.transactionsQueue.length <= 1) // if there is no other transaction
-            {
-                entry = await this.log.append({
-                    transaction: tx,
-                    database: await this.toMultihash(),
-                    parent: this.log.head ? this.log.head.hash : null,
-                    grantAccessTo: this.accessController.getFirst()
-                } as DBLogPayload);
-                await this.pubSubListener.publish(new PubSubMessage({
-                    type: PubSubMessageType.PublishVersion,
-                    value: (await this.log.toMultihash()).toString()
-                }));
+            entry = await this.log.append({
+                transaction: tx,
+                database: await this.toMultihash(),
+                parent: this.log.head ? this.log.head.hash : null,
+            } as DBLogPayload);
+            await this.pubSubListener.publish(new PubSubMessage({
+                type: PubSubMessageType.PublishVersion,
+                value: (await this.log.toMultihash()).toString()
+            }));
 
-                this.accessController.returnTicket();
-                console.log(entry);
-            } else
-            {
-                entry = await this.log.append({
-                    transaction: tx,
-                    parent: this.log.head ? this.log.head.hash : null
-                } as DBLogPayload);
-            }
-
-            this.log.head = entry;
-            return entry;
+            await this.accessController.returnTicket();
+            console.log(entry);
+        } else
+        {
+            entry = await this.log.append({
+                transaction: tx,
+                parent: this.log.head ? this.log.head.hash : null
+            } as DBLogPayload);
         }
+
+        this.log.head = entry;
+        return entry;
     }
 
     public async create(entity: Queriable<any>)
@@ -193,18 +193,24 @@ export default class DatabaseInstance
             );
     }
 
+    async lock(fn)
+    {
+        return await this._lock.acquire(this.databaseName, async (done) =>
+        {
+            await fn();
+            done();
+        });
+    }
+
 
     public async syncLog(hash: string)
     {
-
-        var lock = new AsyncLock();
-
-        lock.acquire(this.databaseName, async () =>
+        await this.lock(async () =>
         {
             const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
             await this.log.merge(dbLog);
-
         });
+
         return;
     }
 

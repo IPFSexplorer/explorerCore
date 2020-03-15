@@ -22,7 +22,7 @@ import AsyncLock from "async-lock";
         {
             return new TransactionsBulk(
                 {
-                    transactions: (tx as unknown as TransactionsBulk).transactions.map(tx => new Transaction(tx))
+                    transactions: (tx as unknown as TransactionsBulk).transactions.map(tx => inflate(Transaction, tx))
                 });
         } else
         {
@@ -50,11 +50,11 @@ export default class Transaction implements ITransaction
     {
         //console.log(`Start: ${this}`);
         await database.accessController.waitForAccess();
-        //console.log(`Run: ${this}`);
+        //console.log(`Lock: ${this}`);
 
-        var lock = new AsyncLock();
-        lock.acquire(database.databaseName, async () =>
+        await database.lock(async () =>
         {
+            //console.log(`Run: ${this}`);
             switch (this.operation)
             {
                 case DbOperation.Create:
@@ -75,11 +75,19 @@ export default class Transaction implements ITransaction
         });
 
         //console.log(`Finish: ${this}`);
-        return true;
     }
 
     toString(payloadMapper: (arg0: any) => any = null): string
     {
-        return `${this.operation}: ${(payloadMapper ? payloadMapper(this.data) : this.data)}`;
+        try
+        {
+
+            return `${this.operation}: ${(payloadMapper ? payloadMapper(this.data) : this.data)}`;
+        }
+        catch (e)
+        {
+            console.log("error");
+            return "Errrorrr";
+        }
     }
 }

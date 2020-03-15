@@ -26,11 +26,15 @@ export default class PubSubListener
     async publish(data: PubSubMessage)
     {
         console.log({ _: "PUB", ...data });
+
+        // if (data.type === PubSubMessageType.PublishVersion)
+        //     console.log({ _: "PUB", ...data });
+
         await PubSub.publish(this.databaseName, JSON.stringify(deflate(data)));
     }
 
     async onEvent(msg: {
-        from: String;
+        from: string;
         seqno: Buffer;
         data: Buffer;
         topicIDs: Array<String>;
@@ -43,6 +47,7 @@ export default class PubSubListener
         switch (message.type)
         {
             case PubSubMessageType.PublishVersion:
+                //console.log({ _: "SUB", ...message });
                 await Database.databaseByName(this.databaseName).syncLog(message.value);
                 break;
 
@@ -51,6 +56,9 @@ export default class PubSubListener
                 break;
             case PubSubMessageType.AccessTaken:
                 Database.databaseByName(this.databaseName).accessController.takenAccess(message.value);
+                break;
+            case PubSubMessageType.AccessReturn:
+                await Database.databaseByName(this.databaseName).accessController.accessGranted(message.value, msg.from);
                 break;
         }
 

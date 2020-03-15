@@ -8,7 +8,7 @@ export const DEFAULT_COMPARATOR: Comparator<Key> = (a: Key, b: Key) =>
 export const DEFAULT_KEY_GETTER: KeyGetter<Value, Key> = (a: Value) => a.id;
 
 export default class BTree<Key, Value> {
-    @Serialize({ optional: true }) private root?: BTreeNode<Key, Value>;
+    @Serialize({ nullable: true }) private root?: BTreeNode<Key, Value>;
     @Serialize() private t: number;
     @Serialize() public size: number;
 
@@ -28,7 +28,8 @@ export default class BTree<Key, Value> {
         t: number = 16,
         comparator: Comparator<Key> = DEFAULT_COMPARATOR,
         keyGetter: KeyGetter<Value, Key> = DEFAULT_KEY_GETTER
-    ) {
+    )
+    {
         this.root = null; // Pointer to root node
         this.t = t; // Minimum degree
         this.comparator = comparator;
@@ -36,61 +37,72 @@ export default class BTree<Key, Value> {
         this.size = 0;
     }
 
-    async traverse(visitor: Visitor<Key, Value>): Promise<BTree<Key, Value>> {
+    async traverse(visitor: Visitor<Key, Value>): Promise<BTree<Key, Value>>
+    {
         if (this.root !== null) await this.root.traverse(visitor);
         return this;
     }
 
-    async generatorTraverse() {
+    async generatorTraverse()
+    {
         return this.root === null ? null : this.root.generatorTraverse();
     }
 
     // function to search a key i n  this tre e
-    async search(k: Key): Promise<BTreeNode<Key, Value>> {
+    async search(k: Key): Promise<BTreeNode<Key, Value>>
+    {
         return this.root === null
             ? null
             : await this.root.search(k, this.comparator);
     }
 
-    async searchRange(min: Key, max: Key): Promise<BTreeNode<Key, Value>> {
+    async searchRange(min: Key, max: Key): Promise<BTreeNode<Key, Value>>
+    {
         return this.root === null
             ? null
             : await this.root.searchRange(min, max, this.comparator);
     }
 
-    async searchGreather(min: Key): Promise<BTreeNode<Key, Value>> {
+    async searchGreather(min: Key): Promise<BTreeNode<Key, Value>>
+    {
         return this.root === null
             ? null
             : await this.root.searchGreather(min, this.comparator);
     }
 
-    async searchLess(max: Key): Promise<BTreeNode<Key, Value>> {
+    async searchLess(max: Key): Promise<BTreeNode<Key, Value>>
+    {
         return this.root === null
             ? null
             : await this.root.searchLess(max, this.comparator);
     }
 
-    async save(value: Value): Promise<BTree<Key, Value>> {
+    async save(value: Value): Promise<BTree<Key, Value>>
+    {
         return await this.insert(this.keyGetter(value), value);
     }
 
     // The main function that inserts a new key   in th i s B-Tree
-    async insert(k: Key, value: Value): Promise<BTree<Key, Value>> {
+    async insert(k: Key, value: Value): Promise<BTree<Key, Value>>
+    {
 
         const t = this.t;
         //If tree is empty
-        if (this.root === null) {
+        if (this.root === null)
+        {
             // Allocate memory for root
             this.root = new BTreeNode<Key, Value>(t, true);
             this.root.keys[0] = k; // Insert key
             this.root.data[0] = value;
             this.root.n = 1; // Update number of keys in root
-        } else {
+        } else
+        {
             // If tree is not empty
             const root = this.root;
             const comparator = this.comparator;
             // If root is full, then tree grows in height
-            if (root.n === 2 * t - 1) {
+            if (root.n === 2 * t - 1)
+            {
                 // Allocate memory for new root
                 const s = new BTreeNode<Key, Value>(t, false);
                 // Make old root as child of new root
@@ -115,7 +127,8 @@ export default class BTree<Key, Value> {
 
                 // Change root
                 this.root = s;
-            } else {
+            } else
+            {
                 // If root is not full, call insertNonFull for root
                 this.root = await root.insertNonFull(k, value, comparator, t);
             }
@@ -126,8 +139,10 @@ export default class BTree<Key, Value> {
 
     // The main function that rem o ves a   new key in  thie B-Tree
     // TODO: removing with non unique keys can remove different item
-    async remove(v: Value): Promise<BTree<Key, Value>> {
-        if (this.root === null) {
+    async remove(v: Value): Promise<BTree<Key, Value>>
+    {
+        if (this.root === null)
+        {
             return this;
         }
 
@@ -138,7 +153,8 @@ export default class BTree<Key, Value> {
 
         // If the root node has 0 keys, make its first child as the new root
         //  if it has a child, otherwise set root as NULL
-        if (this.root.n === 0) {
+        if (this.root.n === 0)
+        {
             if (this.root.leaf) this.root = null;
             else this.root = await this.root.children.getChild(0);
         }
@@ -146,24 +162,28 @@ export default class BTree<Key, Value> {
         return this;
     }
 
-    async height(): Promise<number> {
+    async height(): Promise<number>
+    {
         if (this.root === null) return 0;
         return await this.root.height();
     }
 
-    async keys(): Promise<Array<Key>> {
+    async keys(): Promise<Array<Key>>
+    {
         const keys: Array<Key> = [];
         await this.traverse((key: Key) => keys.push(key));
         return keys;
     }
 
-    async entries(): Promise<Array<Value>> {
+    async entries(): Promise<Array<Value>>
+    {
         const values: Array<Value> = [];
         await this.traverse((key: Key, value: Value) => values.push(value));
         return values;
     }
 
-    async getGreather(min: Key): Promise<Array<Value>> {
+    async getGreather(min: Key): Promise<Array<Value>>
+    {
         const subtree = await this.searchGreather(min);
         const values: Array<Value> = [];
         await subtree.traverseGreather(
@@ -174,14 +194,16 @@ export default class BTree<Key, Value> {
         return values;
     }
 
-    async generatorGreather(min: Key) {
+    async generatorGreather(min: Key)
+    {
         const subtree = await this.searchGreather(min);
         return subtree === null
             ? []
             : subtree.generatorGreather(min, this.comparator);
     }
 
-    async getLess(max: Key): Promise<Array<Value>> {
+    async getLess(max: Key): Promise<Array<Value>>
+    {
         const subtree = await this.searchLess(max);
         const values: Array<Value> = [];
         await subtree.traverseLess(
@@ -192,14 +214,16 @@ export default class BTree<Key, Value> {
         return values;
     }
 
-    async generatorLess(max: Key) {
+    async generatorLess(max: Key)
+    {
         const subtree = await this.searchLess(max);
         return subtree === null
             ? []
             : subtree.generatorLess(max, this.comparator);
     }
 
-    async getRange(min: Key, max: Key): Promise<Array<Value>> {
+    async getRange(min: Key, max: Key): Promise<Array<Value>>
+    {
         const subtree = await this.searchRange(min, max);
         const values: Array<Value> = [];
         await subtree.traverseRange(
@@ -211,7 +235,8 @@ export default class BTree<Key, Value> {
         return values;
     }
 
-    async generatorRange(min: Key, max: Key) {
+    async generatorRange(min: Key, max: Key)
+    {
         const subtree = await this.searchRange(min, max);
 
         return subtree === null
@@ -219,14 +244,16 @@ export default class BTree<Key, Value> {
             : subtree.generatorRange(min, max, this.comparator);
     }
 
-    async get(key: Key): Promise<Value> {
+    async get(key: Key): Promise<Value>
+    {
         const leaf = await this.search(key);
         return leaf === null
             ? null
             : leaf.data[leaf.findKey(key, this.comparator)];
     }
 
-    toJSON() {
+    toJSON()
+    {
         return {
             root: this.root,
             t: this.t,
@@ -236,7 +263,8 @@ export default class BTree<Key, Value> {
         };
     }
 
-    fromJSON(data: any): BTree<Key, Value> {
+    fromJSON(data: any): BTree<Key, Value>
+    {
         this.root =
             data.root === null
                 ? null
