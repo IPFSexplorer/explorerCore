@@ -1,8 +1,11 @@
 import BTree from "../../BTree/BTree";
-import { Serialize } from "serialazy";
+import { Serialize, inflate, deflate } from "serialazy";
 import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { write } from "../../log/io";
 import Queriable from "../query/queriable";
+import DAG from "../../../ipfs/DAG";
+import Log from "../../log/log";
+import DatabaseInstance from "../database/databaseInstance";
 
 export default class Table
 {
@@ -16,14 +19,14 @@ export default class Table
         Object.assign(this, init);
     }
 
-    public async insert(entity: Queriable<any>)
+    public async insert(entity: Queriable<any>, database: DatabaseInstance)
     {
         const promises = [];
 
-        // TODO change this to dag-json after https://github.com/ipld/js-dag-json/issues/24 is resolved
-        if (entity.toJson)
-            entity = entity.toJson() as unknown as Queriable<any>;
-        const cid = await write("dag-json", entity);
+        const log = new Log(database.identity, { logId: this.getPrimaryIndex().keyGetter(entity) });
+        await log.append(entity);
+
+        const cid = await log.toMultihash();
         for (const key in this.indexes)
         {
             const index = this.getIndex(key);

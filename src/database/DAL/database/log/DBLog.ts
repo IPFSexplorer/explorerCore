@@ -70,8 +70,6 @@ export default class DBLog extends Log
             if (thisHead.identity.id === this.identity.id)
                 rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
             await this.migrate(log, rollbackOperations);
-
-            // await Database.databaseByName(this.id).publishLog();
         } else
         {
             await this.join(log);
@@ -100,7 +98,7 @@ export default class DBLog extends Log
     {
         await Database.databaseByName(this.id).fromMultihash((log.head.payload as DBLogPayload).database);
         if (rollbackOperations.length > 0)
-            Database.databaseByName(this.id).addTransaction(rollbackOperations, true);
+            Database.databaseByName(this.id).processTransaction(rollbackOperations, true);
         await this.join(log);
         this._head = log.head.hash;
         this._clock = new LamportClock(this.clock.id, this.head.clock.time);

@@ -60,7 +60,11 @@ export default class Transaction implements ITransaction
                 case DbOperation.Create:
                     await database
                         .getOrCreateTableByEntity(this.data as Queriable<any>)
-                        .insert(this.data as Queriable<any>);
+                        .insert(this.data as Queriable<any>, database);
+                    break;
+
+                case DbOperation.Read:
+
                     break;
 
                 case DbOperation.Delete:

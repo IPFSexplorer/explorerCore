@@ -19,6 +19,7 @@ import { DBLogPayload } from "./log/DBLogPayload";
 import BTree from "../../BTree/BTree";
 import AsyncLock from "async-lock";
 import IndexMap from "../indexMap";
+import DAG from "../../../ipfs/DAG";
 
 
 export default class DatabaseInstance
@@ -64,7 +65,7 @@ export default class DatabaseInstance
 
 
     }
-    public async addTransaction(transaction: ITransaction, toBeginning = false)
+    public async processTransaction(transaction: ITransaction, toBeginning = false)
     {
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
 
@@ -81,10 +82,16 @@ export default class DatabaseInstance
 
     public async runTransaction(tx: ITransaction)
     {
-        await tx.run(this);
+        const txResult = await tx.run(this);
+        if (tx instanceof Transaction && (tx as Transaction).operation === DbOperation.Read)
+        {
+            if (this.transactionsQueue.length <= 1)
+                await this.accessController.returnTicket();
+            return tx;
+        }
 
         let entry: Entry;
-        if (this.transactionsQueue.length <= 1) // if there is no other transaction
+        if (this.transactionsQueue.length <= 1)
         {
             entry = await this.log.append({
                 transaction: tx,
@@ -97,7 +104,6 @@ export default class DatabaseInstance
             }));
 
             await this.accessController.returnTicket();
-            console.log(entry);
         } else
         {
             entry = await this.log.append({
@@ -113,7 +119,7 @@ export default class DatabaseInstance
     public async create(entity: Queriable<any>)
     {
         const tx = new Transaction({ operation: DbOperation.Create, data: entity });
-        await this.addTransaction(tx);
+        await this.processTransaction(tx);
     }
 
     public update(table, address, newData)
@@ -171,7 +177,7 @@ export default class DatabaseInstance
     {
         const res = {};
         Object.keys(this.tables).forEach(k => res[k] = deflate(this.tables[k]));
-        return await write("dag-json", res);
+        return await DAG.PutAsync(res);
     }
 
 
@@ -182,19 +188,6 @@ export default class DatabaseInstance
 
         Object.keys(tables).forEach(k => this.tables[k] = inflate(Table, tables[k]));
         return;
-    }
-
-    public async publishLog(force = false)
-    {
-        if (this.transactionsQueue.length <= 1 || force) // if there is no other transaction
-            await this.pubSubListener.publish(
-                new PubSubMessage(
-                    {
-                        type: PubSubMessageType.PublishVersion,
-                        value: (await this.log.toMultihash()).toString()
-                    }
-                )
-            );
     }
 
     async lock(fn)
