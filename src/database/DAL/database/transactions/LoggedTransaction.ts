@@ -7,9 +7,12 @@ import DBLog from "../log/DBLog";
 import { DBLogPayload } from "../log/DBLogPayload";
 import { Serialize, inflate, deflate } from "serialazy";
 import AsyncLock from "async-lock";
+import Entry from "../../../log/entry";
+import PubSubMessage from "../PubSub/pubSubMessage";
+import { PubSubMessageType } from "../PubSub/MessageType";
 
 @Serialize.Type({
-    down: (tx: Transaction) =>
+    down: (tx: LoggedTransaction) =>
     {
         return {
             type: tx.operation,
@@ -22,27 +25,27 @@ import AsyncLock from "async-lock";
         {
             return new TransactionsBulk(
                 {
-                    transactions: (tx).transactions.map(tx => inflate(Transaction, tx))
+                    transactions: (tx).transactions.map(tx => inflate(LoggedTransaction, tx))
                 });
         } else
         {
-            return new Transaction(tx);
+            return new LoggedTransaction(tx);
         }
     }
 })
-export default class Transaction implements ITransaction
+export default class LoggedTransaction implements ITransaction
 {
     operation: DbOperation;
     data: any;
 
-    constructor(init?: Partial<Transaction>)
+    constructor(init?: Partial<LoggedTransaction>)
     {
         Object.assign(this, init);
     }
+
     merge(transaction: ITransaction)
     {
-        const bulk = new TransactionsBulk();
-        bulk;
+        const bulk = new TransactionsBulk({ transactions: [this, transaction] });
         return bulk;
     }
 
@@ -63,10 +66,6 @@ export default class Transaction implements ITransaction
                         .insert(this.data as Queriable<any>, database);
                     break;
 
-                case DbOperation.Read:
-
-                    break;
-
                 case DbOperation.Delete:
                     break;
 
@@ -77,6 +76,31 @@ export default class Transaction implements ITransaction
                     throw Error(`wrong db operation ${this.operation}`);
             }
         });
+
+        let entry: Entry;
+        if (database.transactionsQueue.length <= 1)
+        {
+            entry = await database.log.append({
+                transaction: this,
+                database: await database.toMultihash(),
+                parent: database.log.head ? database.log.head.hash : null,
+            } as DBLogPayload);
+            await database.pubSubListener.publish(new PubSubMessage({
+                type: PubSubMessageType.PublishVersion,
+                value: (await database.log.toMultihash()).toString()
+            }));
+
+            await database.accessController.returnTicket();
+        } else
+        {
+            entry = await database.log.append({
+                transaction: this,
+                parent: database.log.head ? database.log.head.hash : null
+            } as DBLogPayload);
+        }
+
+        database.log.head = entry;
+        return entry;
 
         //console.log(`Finish: ${this}`);
     }

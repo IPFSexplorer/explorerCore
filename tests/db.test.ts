@@ -19,16 +19,14 @@ class User extends Queriable<User> {
     @PrimaryKey()
     name: string;
 
+    @Index()
+    age: number;
 
-    age: ForeignKey<Numberr>;
-
-    constructor(name, age)
+    toString()
     {
-        super();
-        this.name = name;
+        return this.age;
     }
 }
-
 
 class Numberr extends Queriable<Numberr> {
     @PrimaryKey()
@@ -50,18 +48,46 @@ describe("Btree", () =>
         });
     });
 
-    it('FK test', async () =>
+    it('refactor test', async () =>
     {
-        const n = new Numberr();
-        n.value = 22;
+        const id = (await (await IPFSconnector.getInstanceAsync()).node.id()).id;
+        const identity = await IdentityProvider.createIdentity({
+            id
+        });
+        Database.connect("testDB", identity);
+        await Database.use("testDB").execute(
+            async (db1: DatabaseInstance) =>
+            {
+                const tasks = [];
 
-        const u = new User("matus", 10);
-        u.age = new ForeignKey<Numberr>();
-        u.age.set(n);
+                for (let i = 0; i < 10; i++)
+                {
+                    const u = new User();
+                    u.name = "test" + i;
+                    u.age = i;
+                    tasks.push(u.save());
+                }
+
+                await Promise.all(tasks);
+                const users = await new User().all();
+                console.log(users);
+            }
+        );
+    }, 500000);
 
 
-        console.log(await u.age.get());
-    });
+    // it('FK test', async () =>
+    // {
+    //     const n = new Numberr();
+    //     n.value = 22;
+
+    //     const u = new User("matus", 10);
+    //     u.age = new ForeignKey<Numberr>();
+    //     u.age.set(n);
+
+
+    //     console.log(await u.age.get());
+    // });
 
 
     it('use DB', async () =>
@@ -84,48 +110,5 @@ describe("Btree", () =>
         });
     }, 500000);
 
-    it('merge DBs', async () =>
-    {
-        const identity = await IdentityProvider.createIdentity({ id: "userA" });
-        Database.connect("testDB", identity);
 
-        await Database.use("testDB").execute(async (db1: DatabaseInstance) =>
-        {
-            await new User("test1", 1).save();
-            await new User("test2", 2).save();
-            await new User("testA1", 3).save();
-            await new User("testA2", 4).save();
-
-            await db1.waitForAllTransactionsDone();
-            console.log(db1.log.toString(p => p.transaction.data.name));
-
-            Database.connect("testDB", identity);
-            await Database.use("testDB").execute(async (db2: DatabaseInstance) =>
-            {
-                await new User("test1", 1).save();
-                await new User("test2", 2).save();
-                await new User("testB1", 3).save();
-                await new User("testB2", 4).save();
-
-                await db2.waitForAllTransactionsDone();
-
-
-                await delay(3000);
-
-                console.log(db2.log.toString(p => p.transaction.data.name));
-                console.log(db1.log.toString(p => p.transaction.data.name));
-
-                let head = db2.log.head;
-                while (head)
-                {
-                    console.log(head.payload.transaction.data.name);
-                    head = db2.log.get(head.payload.parent);
-                }
-
-            });
-        });
-
-
-
-    }, 500000);
 });

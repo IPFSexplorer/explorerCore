@@ -3,7 +3,7 @@ import BTree from "../../../BTree/btree";
 import { Filter } from "../../query/types";
 import DatabaseInstance from "../../database/databaseInstance";
 import Database from "../../database/databaseStore";
-import Transaction from "../../database/transactions/Transaction";
+import LoggedTransaction from "../../database/transactions/LoggedTransaction";
 import { DbOperation } from "../../database/DBOperations";
 
 export default class lessThan implements IComparator
@@ -25,7 +25,6 @@ export default class lessThan implements IComparator
 
     public async traverse(btree: BTree<any, any>)
     {
-        const tx = new Transaction({ operation: DbOperation.Read, data: () => btree.generatorLess(this.value) });
-        return await Database.selectedDatabase.processTransaction(tx);
+        return btree.generatorLess(this.value);
     }
 }

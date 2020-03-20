@@ -7,7 +7,7 @@ import SerializeAnObjectOf from "../../serialization/objectSerializer";
 import { JsonMap } from "serialazy/lib/dist/types/json_type";
 import { write, read } from "../../log/io";
 import Queue from "queue";
-import Transaction from "./transactions/Transaction";
+import LoggedTransaction from "./transactions/LoggedTransaction";
 import PubSub from "../../../ipfs/PubSub";
 import PubSubMessage from "./PubSub/pubSubMessage";
 import PubSubListener from "./PubSub/PubSub";
@@ -20,6 +20,7 @@ import BTree from "../../BTree/BTree";
 import AsyncLock from "async-lock";
 import IndexMap from "../indexMap";
 import DAG from "../../../ipfs/DAG";
+import ReadTransaction from "./transactions/ReadTransaction";
 
 
 export default class DatabaseInstance
@@ -65,6 +66,7 @@ export default class DatabaseInstance
 
 
     }
+
     public async processTransaction(transaction: ITransaction, toBeginning = false)
     {
         const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
@@ -74,62 +76,34 @@ export default class DatabaseInstance
         {
             queueFunction.call(this.transactionsQueue, async () =>
             {
-                resolve(await this.runTransaction(transaction));
+                resolve(await transaction.run(this));
             });
         });
 
     }
 
-    public async runTransaction(tx: ITransaction)
-    {
-        const txResult = await tx.run(this);
-        if (tx instanceof Transaction && (tx as Transaction).operation === DbOperation.Read)
-        {
-            if (this.transactionsQueue.length <= 1)
-                await this.accessController.returnTicket();
-            return tx;
-        }
-
-        let entry: Entry;
-        if (this.transactionsQueue.length <= 1)
-        {
-            entry = await this.log.append({
-                transaction: tx,
-                database: await this.toMultihash(),
-                parent: this.log.head ? this.log.head.hash : null,
-            } as DBLogPayload);
-            await this.pubSubListener.publish(new PubSubMessage({
-                type: PubSubMessageType.PublishVersion,
-                value: (await this.log.toMultihash()).toString()
-            }));
-
-            await this.accessController.returnTicket();
-        } else
-        {
-            entry = await this.log.append({
-                transaction: tx,
-                parent: this.log.head ? this.log.head.hash : null
-            } as DBLogPayload);
-        }
-
-        this.log.head = entry;
-        return entry;
-    }
-
     public async create(entity: Queriable<any>)
     {
-        const tx = new Transaction({ operation: DbOperation.Create, data: entity });
-        await this.processTransaction(tx);
+        const tx = new LoggedTransaction({ operation: DbOperation.Create, data: entity });
+        return await this.processTransaction(tx);
     }
 
-    public update(table, address, newData)
+    public async read(query)
     {
-
+        const tx = new ReadTransaction(query);
+        return await this.processTransaction(tx);
     }
 
-    public remove(table, data)
+    public async update(entity: Queriable<any>)
     {
+        const tx = new LoggedTransaction({ operation: DbOperation.Update, data: entity });
+        return await this.processTransaction(tx);
+    }
 
+    public async delete(entity: Queriable<any>)
+    {
+        const tx = new LoggedTransaction({ operation: DbOperation.Delete, data: entity });
+        return await this.processTransaction(tx);
     }
 
 
@@ -194,8 +168,7 @@ export default class DatabaseInstance
     {
         return await this._lock.acquire(this.databaseName, async (done) =>
         {
-            await fn();
-            done();
+            done(null, await fn());
         });
     }
 

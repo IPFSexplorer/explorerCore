@@ -1,6 +1,6 @@
 import ITransaction from "./ITransaction";
 import DatabaseInstance from "../databaseInstance";
-import Transaction from "./Transaction";
+import LoggedTransaction from "./LoggedTransaction";
 
 export default class TransactionsBulk implements ITransaction
 {

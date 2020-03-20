@@ -55,7 +55,7 @@ export default class QueryPlanner
     public async getAll()
     {
         const results = [];
-        for await (const res of this.resolve())
+        for await (const res of await this.resolve())
         {
             results.push(res);
         }
@@ -64,7 +64,7 @@ export default class QueryPlanner
 
     public async getFirst()
     {
-        for await (const res of this.resolve())
+        for await (const res of await this.resolve())
         {
             return res;
         }
@@ -73,7 +73,7 @@ export default class QueryPlanner
     public async *paginate(perPage: number = 20)
     {
         let page = [];
-        for await (const res of this.resolve())
+        for await (const res of await this.resolve())
         {
             page.push(res);
             if (page.length === perPage)
@@ -87,7 +87,7 @@ export default class QueryPlanner
     public async take(limit: number)
     {
         const results = [];
-        for await (const res of this.resolve())
+        for await (const res of await this.resolve())
         {
             results.push(res);
             if (results.length === limit) break;
@@ -97,7 +97,7 @@ export default class QueryPlanner
 
     public async *iterate()
     {
-        yield* this.resolve();
+        yield* await this.resolve();
     }
 
     public conditionsToFilters()
@@ -119,7 +119,12 @@ export default class QueryPlanner
         }
     }
 
-    private async *resolve()
+    private async resolve()
+    {
+        return await Database.selectedDatabase.read(this.getGenerator.bind(this)) as AsyncGenerator;
+    }
+
+    private async *getGenerator()
     {
         this.conditionsToFilters();
         if (this.conditions.length === 0)

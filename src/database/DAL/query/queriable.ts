@@ -35,6 +35,16 @@ export default class Queriable<T> extends BaseQuery<T> {
 
     public async save(): Promise<void>
     {
-        return await Database.selectedDatabase.create(this);
+        await Database.selectedDatabase.create(this);
+    }
+
+    public async update(): Promise<void>
+    {
+        await Database.selectedDatabase.update(this);
+    }
+
+    public async delete(): Promise<void>
+    {
+        await Database.selectedDatabase.delete(this);
     }
 }

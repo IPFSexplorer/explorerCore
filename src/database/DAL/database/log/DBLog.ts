@@ -7,7 +7,7 @@ import { runInThisContext } from "vm";
 import { Guid } from "guid-typescript";
 import LogIO from "../../../log/log-io";
 import Queue from "queue";
-import Transaction from "../transactions/Transaction";
+import LoggedTransaction from "../transactions/LoggedTransaction";
 import { DbOperation } from "../DBOperations";
 import Queriable from "../../query/queriable";
 import Database from "../databaseStore";

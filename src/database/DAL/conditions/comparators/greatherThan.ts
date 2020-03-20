@@ -4,7 +4,7 @@ import { Filter } from "../../query/types";
 import DatabaseInstance from "../../database/databaseInstance";
 import Database from "../../database/databaseStore";
 import { DbOperation } from "../../database/DBOperations";
-import Transaction from "../../database/transactions/Transaction";
+import LoggedTransaction from "../../database/transactions/LoggedTransaction";
 
 export default class greatherThan implements IComparator
 {
@@ -25,7 +25,6 @@ export default class greatherThan implements IComparator
 
     public async traverse(btree: BTree<any, any>)
     {
-        const tx = new Transaction({ operation: DbOperation.Read, data: () => btree.generatorGreather(this.value) });
-        return await Database.selectedDatabase.processTransaction(tx);
+        return btree.generatorGreather(this.value);
     }
 }

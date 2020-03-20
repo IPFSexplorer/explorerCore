@@ -3,8 +3,9 @@ import BTree from "../../../BTree/btree";
 import { Filter } from "../../query/types";
 import DatabaseInstance from "../../database/databaseInstance";
 import Database from "../../database/databaseStore";
-import Transaction from "../../database/transactions/Transaction";
+import LoggedTransaction from "../../database/transactions/LoggedTransaction";
 import { DbOperation } from "../../database/DBOperations";
+import ReadTransaction from "../../database/transactions/ReadTransaction";
 export default class equal implements IComparator
 {
     value: any;
@@ -24,8 +25,7 @@ export default class equal implements IComparator
 
     public async *traverse(btree: BTree<any, any>)
     {
-        const tx = new Transaction({ operation: DbOperation.Read, data: () => btree.get(this.value) });
-        const res = await Database.selectedDatabase.processTransaction(tx);
+        const res = await btree.get(this.value);
         if (res != null) yield res;
     }
 }

@@ -8,7 +8,7 @@ export default class BaseQuery<T> {
 
     get queryPlanner()
     {
-        if (this._queryPlanner)
+        if (!this._queryPlanner)
             this._queryPlanner = new QueryPlanner(this.constructor.name);
         return this._queryPlanner;
     }
@@ -25,7 +25,7 @@ export default class BaseQuery<T> {
 
     public async first(): Promise<T>
     {
-        return this.resultMapper((await this.queryPlanner.getFirst()));
+        return this.resultMapper((await this.queryPlanner.getFirst()) as Log);
     }
 
     public skip(skip: number)
@@ -51,7 +51,7 @@ export default class BaseQuery<T> {
     {
         for await (const res of this.queryPlanner.iterate())
         {
-            yield this.resultMapper(res);
+            yield this.resultMapper(res as Log);
         }
     }
 
