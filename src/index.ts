@@ -1,10 +1,7 @@
-import "reflect-metadata";
-import { container } from "tsyringe";
-import ipfsBtreeNodeChildren from "./database/BTree/children/ipfsChildren";
-import BTree from "./database/BTree/BTree";
+import Database from "./database/DAL/database/databaseStore";
+import IPFSconnector from "./ipfs/IPFSConnector";
 
-container.register("BtreeNodeChildren", {
-    useClass: ipfsBtreeNodeChildren
-});
-
-export default BTree
+export {
+    Database,
+    IPFSconnector
+}
