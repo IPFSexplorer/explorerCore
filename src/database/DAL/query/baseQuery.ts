@@ -67,7 +67,7 @@ export default class BaseQuery<T> {
         {
             return this.conflictSolver(res);
         }
-        return res.get(res.heads[0]).payload;
+        return res.heads[0].payload;
     }
 
     private conflictSolver(conflict: Log): T

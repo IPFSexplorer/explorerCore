@@ -177,13 +177,13 @@ export default class Log extends EventEmitter
 
     /**
      * Returns an array of heads as hashes.
-     * @returns {Array<string>}
+     * @returns {Array<Entry>}
      */
-    get heads(): string[]
+    get heads(): Entry[]
     {
         return Object.values(this._headsIndex)
             .sort(this._sortFn)
-            .reverse() as Array<string>;
+            .reverse() as Array<Entry>;
     }
 
     /**

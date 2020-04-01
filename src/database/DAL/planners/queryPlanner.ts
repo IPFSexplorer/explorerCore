@@ -3,6 +3,7 @@ import { Filter } from "../query/types";
 import DAG from "../../../ipfs/DAG";
 import DatabaseInstance from "../database/databaseInstance";
 import Database from "../database/databaseStore";
+import Log from "../../log/log"
 
 enum ConditionTypes
 {
@@ -193,7 +194,7 @@ export default class QueryPlanner
         let item;
         if (this.filters.length > 0)
         {
-            item = await DAG.GetAsync(result);
+            item = await getLogFromHash(result);
             for (const filter of this.filters)
             {
                 if (!filter(item))
@@ -217,7 +218,11 @@ export default class QueryPlanner
                 return;
             }
 
-            yield await DAG.GetAsync(result);
+            yield await getLogFromHash(result);
+        }
+
+        async function getLogFromHash(hash: string) {
+            return await Log.fromMultihash(Database.selectedDatabase.identity, result);
         }
     }
 
