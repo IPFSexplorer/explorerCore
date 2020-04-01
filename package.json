@@ -2,7 +2,8 @@
     "name": "explorer-core",
     "author": "Matúš Múčka <matus@mucka.sk>",
     "version": "0.1.14",
-    "main": "src/index.ts",
+    "type": "module",
+    "main": "dist/index.js",
     "scripts": {
         "test": "jest",
         "test:watch": "jest --watchAll",
@@ -28,6 +29,7 @@
         "ipns": "^0.7.0",
         "json-stringify-deterministic": "^1.0.1",
         "json2typescript": "^1.2.3",
+        "leveldown": "^5.6.0",
         "libp2p": "^0.27.2",
         "libp2p-gossipsub": "^0.2.3",
         "libp2p-kad-dht": "^0.18.4",

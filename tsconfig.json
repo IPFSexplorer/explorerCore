@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "emitDecoratorMetadata": true,
-    "target": "esnext",
-    "module": "esnext",
+    "target": "es6",
+    "module": "commonjs",
     "jsx": "preserve",
     "importHelpers": true,
     "noImplicitAny": false,
@@ -17,8 +17,8 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost", "es2015", "es2017"]
+    "lib": ["es2017", "es7", "es6", "dom"],
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts", "dist"]
 }
