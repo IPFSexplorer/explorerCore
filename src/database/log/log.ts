@@ -42,7 +42,6 @@ export default class Log {
     protected _access: any;
     protected _identity: any;
     protected _headsIndex: any;
-    protected _nextsIndex: {};
     protected _length: number;
     protected _clock: Clock;
     joinConcurrency: any;
@@ -113,15 +112,6 @@ export default class Log {
         // Set heads if not passed as an argument
         heads = heads || Log.findHeads(entries);
         this._headsIndex = heads.reduce(uniqueEntriesReducer, {});
-
-        // Index of all next pointers in this log
-        this._nextsIndex = {};
-        const addToNextsIndex = (e: { next: any[]; hash: any }) =>
-            e.next.forEach(
-                (a: string | number) =>
-                    (this._nextsIndex[a] = e.hash),
-            );
-        entries.forEach(addToNextsIndex);
 
         // Set the length, we calculate the length manually internally
         this._length = entries.length;
@@ -342,7 +332,6 @@ export default class Log {
             );
         }
 
-        nexts.forEach((e) => (this._nextsIndex[e] = entry.hash));
         this._headsIndex = {};
         this._headsIndex[entry.hash] = entry;
         // Update the length
@@ -500,10 +489,6 @@ export default class Log {
         }) => {
             const entry = await this.get(e.hash);
             if (!entry) this._length++; /* istanbul ignore else */
-            e.next.forEach(
-                (a: string | number) =>
-                    (this._nextsIndex[a] = e.hash),
-            );
         };
         const tasks = [];
         for (const i of Object.values(newItems)) {
@@ -514,8 +499,6 @@ export default class Log {
         // Merge the heads
         const notReferencedByNewItems = (e: { hash: any }) =>
             !nextsFromNewItems.find((a: any) => a === e.hash);
-        const notInCurrentNexts = (e: { hash: string | number }) =>
-            !this._nextsIndex[e.hash];
         const nextsFromNewItems = Object.values(newItems)
             .map(getNextPointers)
             .reduce(flatMap, []);
@@ -525,7 +508,6 @@ export default class Log {
             ),
         )
             .filter(notReferencedByNewItems)
-            .filter(notInCurrentNexts)
             .reduce(uniqueEntriesReducer, {});
 
         this._headsIndex = mergedHeads;
