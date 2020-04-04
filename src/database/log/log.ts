@@ -36,13 +36,11 @@ const uniqueEntriesReducer = (res, acc) => {
  * "A comprehensive study of Convergent and Commutative Replicated Data Types"
  * https://hal.inria.fr/inria-00555588
  */
-export default class Log extends EventEmitter {
+export default class Log {
     protected _sortFn: (a: any, b: any) => any;
     protected _id: string;
     protected _access: any;
     protected _identity: any;
-    protected _entryIndex: any;
-    protected _timeIndex: any;
     protected _headsIndex: any;
     protected _nextsIndex: {};
     protected _length: number;
@@ -74,7 +72,6 @@ export default class Log extends EventEmitter {
             concurrency = undefined,
         } = {},
     ) {
-        super();
         if (!isDefined(identity)) {
             throw new Error("Identity is required");
         }
@@ -111,12 +108,7 @@ export default class Log extends EventEmitter {
             uniqueEntriesReducer,
             {},
         );
-        this._entryIndex = new EntryIndex(uniqueEntries);
-        this._timeIndex = new TimeIndex();
         entries = Object.values(uniqueEntries) || [];
-        entries.forEach((e) => {
-            this._timeIndex.set(e.clock.time, e);
-        });
 
         // Set heads if not passed as an argument
         heads = heads || Log.findHeads(entries);
@@ -175,9 +167,9 @@ export default class Log extends EventEmitter {
      * Returns the values in the log.
      * @returns {Array<Entry>}
      */
-    get values(): Entry[] {
+    async getValues(): Promise<Entry[]> {
         return Object.values(
-            this.traverse(this.heads),
+            await this.traverse(this.heads),
         ).reverse() as Array<Entry>;
     }
 
@@ -189,24 +181,6 @@ export default class Log extends EventEmitter {
         return Object.values(this._headsIndex)
             .sort(this._sortFn)
             .reverse() as Array<Entry>;
-    }
-
-    /**
-     * Returns an array of Entry objects that reference entries which
-     * are not in the log currently.
-     * @returns {Array<Entry>}
-     */
-    get tails() {
-        return Log.findTails(this.values);
-    }
-
-    /**
-     * Returns an array of hashes that are referenced by entries which
-     * are not in the log currently.
-     * @returns {Array<string>} Array of hashes
-     */
-    get tailHashes(): string[] {
-        return Log.findTailHashes(this.values);
     }
 
     /**
@@ -228,31 +202,15 @@ export default class Log extends EventEmitter {
      * @param {string} [hash] The hashes of the entry
      * @returns {Entry|undefined}
      */
-    get(hash: string): Entry {
-        return this._entryIndex.get(hash);
+    async get(hash: string): Promise<Entry> {
+        return await Entry.fromMultihash(hash);
     }
 
-    /**
-     * Find entries in time.
-     * @param {number} [time] The hashes of the entry
-     * @returns {Array<Entry>|undefined}
-     */
-    getInTime(time: number): Array<Entry> {
-        return this._timeIndex.get(time);
-    }
-
-    /**
-     * Checks if a entry is part of the log
-     * @param {string} hash The hash of the entry
-     * @returns {boolean}
-     */
-    has(entry: { hash: any }): boolean {
-        return (
-            this._entryIndex.get(entry.hash || entry) !== undefined
-        );
-    }
-
-    traverse(rootEntries: any[], amount = -1, endHash = undefined) {
+    async traverse(
+        rootEntries: any[],
+        amount = -1,
+        endHash = undefined,
+    ) {
         // Sort the given given root entries and use as the starting stack
         let stack = rootEntries.sort(this._sortFn).reverse();
 
@@ -262,7 +220,7 @@ export default class Log extends EventEmitter {
         let result = {};
         let count = 0;
         // Named function for getting an entry from the log
-        const getEntry = (e: any) => this.get(e);
+        const getEntry = async (e: any) => await this.get(e);
 
         // Add an entry to the stack and traversed nodes index
         const addToStack = (entry: { hash: string | number }) => {
@@ -297,7 +255,9 @@ export default class Log extends EventEmitter {
             if (endHash && endHash === entry.hash) break;
 
             // Add entry's next references to the stack
-            const entries = entry.next.map(getEntry);
+            const entries = await Promise.all(
+                entry.next.map(getEntry),
+            );
             const defined = entries.filter(isDefined);
             defined.forEach(addToStack);
         }
@@ -323,7 +283,7 @@ export default class Log extends EventEmitter {
         this._clock = new Clock(this.clock.id, newTime);
 
         const all = Object.values(
-            this.traverse(
+            await this.traverse(
                 this.heads,
                 Math.max(pointerCount, this.heads.length),
             ),
@@ -382,15 +342,12 @@ export default class Log extends EventEmitter {
             );
         }
 
-        this._entryIndex.set(entry.hash, entry);
-        this._timeIndex.set(entry.clock.time, entry);
         nexts.forEach((e) => (this._nextsIndex[e] = entry.hash));
         this._headsIndex = {};
         this._headsIndex[entry.hash] = entry;
         // Update the length
         this._length++;
 
-        this.emit("change");
         return entry;
     }
 
@@ -424,7 +381,7 @@ export default class Log extends EventEmitter {
      *
      *
      */
-    iterator({
+    async iterator({
         gt = undefined,
         gte = undefined,
         lt = undefined,
@@ -432,9 +389,9 @@ export default class Log extends EventEmitter {
         amount = -1,
     } = {}) {
         if (amount === 0) return (function* () {})();
-        if (typeof lte === "string") lte = [this.get(lte)];
+        if (typeof lte === "string") lte = [await this.get(lte)];
         if (typeof lt === "string")
-            lt = [this.get(this.get(lt).next)];
+            lt = [await this.get((await this.get(lt)).next)];
 
         if (lte && !Array.isArray(lte))
             throw LtOrLteMustBeStringOrArray();
@@ -443,13 +400,13 @@ export default class Log extends EventEmitter {
 
         let start = (lte || lt || this.heads).filter(isDefined);
         let endHash = gte
-            ? this.get(gte).hash
+            ? (await this.get(gte)).hash
             : gt
-            ? this.get(gt).hash
+            ? (await this.get(gt)).hash
             : null;
         let count = endHash ? -1 : amount || -1;
 
-        let entries = this.traverse(start, count, endHash);
+        let entries = await this.traverse(start, count, endHash);
         let entryValues = Object.values(entries);
 
         // Strip off last entry if gt is non-inclusive
@@ -487,7 +444,7 @@ export default class Log extends EventEmitter {
         if (this.id !== log.id) return;
 
         // Get the difference of the logs
-        const newItems = Log.difference(log, this);
+        const newItems = await Log.difference(log, this);
 
         const identityProvider = this._identity.provider;
         // Verify if entries are allowed to be added to the log and throws if
@@ -537,21 +494,22 @@ export default class Log extends EventEmitter {
         );
 
         // Update the internal next pointers index
-        const addToNextsIndex = (e: { hash: any; next: any[] }) => {
-            const entry = this.get(e.hash);
+        const addToNextsIndex = async (e: {
+            hash: any;
+            next: any[];
+        }) => {
+            const entry = await this.get(e.hash);
             if (!entry) this._length++; /* istanbul ignore else */
             e.next.forEach(
                 (a: string | number) =>
                     (this._nextsIndex[a] = e.hash),
             );
         };
-        Object.values(newItems).forEach(addToNextsIndex);
-
-        // Update the internal entry index
-        this._entryIndex.add(newItems);
-        entriesToJoin.forEach((e: Entry) =>
-            this._timeIndex.set(e.clock.time, e),
-        );
+        const tasks = [];
+        for (const i of Object.values(newItems)) {
+            tasks.push(addToNextsIndex(i as any));
+        }
+        await Promise.all(tasks);
 
         // Merge the heads
         const notReferencedByNewItems = (e: { hash: any }) =>
@@ -574,17 +532,12 @@ export default class Log extends EventEmitter {
 
         // Slice to the requested size
         if (size > -1) {
-            let tmp = this.values;
+            let tmp = await this.getValues();
             tmp = tmp.slice(-size);
-            this._entryIndex = null;
-            this._entryIndex = new EntryIndex(
-                tmp.reduce(uniqueEntriesReducer, {}),
-            );
             this._headsIndex = Log.findHeads(tmp).reduce(
                 uniqueEntriesReducer,
                 {},
             );
-            this._length = this._entryIndex.length;
         }
 
         // Find the latest clock from the heads
@@ -597,7 +550,6 @@ export default class Log extends EventEmitter {
             Math.max(this.clock.time, maxClock),
         );
 
-        this.emit("change");
         return this;
     }
 
@@ -612,18 +564,6 @@ export default class Log extends EventEmitter {
                 .sort(this._sortFn) // default sorting
                 .reverse() // we want the latest as the first element
                 .map(getHash), // return only the head hashes
-        };
-    }
-
-    /**
-     * Get the log in JSON format as a snapshot.
-     * @returns {Object} An object with the id, heads and value properties
-     */
-    toSnapshot(): object {
-        return {
-            id: this.id,
-            heads: this.heads,
-            values: this.values,
         };
     }
 
@@ -643,25 +583,37 @@ export default class Log extends EventEmitter {
      * └─one
      *   └─three
      */
-    toString(payloadMapper: (arg0: any) => any = null): string {
-        return this.values
-            .slice()
-            .reverse()
-            .map((e, idx) => {
-                const parents = Entry.findChildren(e, this.values);
-                const len = parents.length;
-                let padding = new Array(Math.max(len - 1, 0));
-                padding = len > 1 ? padding.fill("  ") : padding;
-                padding = len > 0 ? padding.concat(["└─"]) : padding;
-                /* istanbul ignore next */
-                return (
-                    padding.join("") +
-                    (payloadMapper
-                        ? payloadMapper(e.payload)
-                        : e.payload)
-                );
-            })
-            .join("\n");
+    async toString(
+        payloadMapper: (arg0: any) => any = null,
+    ): Promise<string> {
+        return (
+            await Promise.all(
+                (await this.getValues())
+                    .slice()
+                    .reverse()
+                    .map(async (e, idx) => {
+                        const parents = Entry.findChildren(
+                            e,
+                            await this.getValues(),
+                        );
+                        const len = parents.length;
+                        let padding = new Array(Math.max(len - 1, 0));
+                        padding =
+                            len > 1 ? padding.fill("  ") : padding;
+                        padding =
+                            len > 0
+                                ? padding.concat(["└─"])
+                                : padding;
+                        /* istanbul ignore next */
+                        return (
+                            padding.join("") +
+                            (payloadMapper
+                                ? payloadMapper(e.payload)
+                                : e.payload)
+                        );
+                    }),
+            )
+        ).join("\n");
     }
 
     /**
@@ -670,11 +622,7 @@ export default class Log extends EventEmitter {
      * @returns {boolean}
      */
     static isLog(log: Log): boolean {
-        return (
-            log.id !== undefined &&
-            log.heads !== undefined &&
-            log._entryIndex !== undefined
-        );
+        return log.id !== undefined && log.heads !== undefined;
     }
 
     /**
@@ -960,7 +908,7 @@ export default class Log extends EventEmitter {
         return entries.reduce(reduceTailHashes, []);
     }
 
-    static difference(a: Log, b) {
+    static async difference(a: Log, b) {
         let stack = Object.keys(a._headsIndex);
         let traversed = {};
         let res = {};
@@ -974,8 +922,8 @@ export default class Log extends EventEmitter {
 
         while (stack.length > 0) {
             const hash = stack.shift();
-            const entry = a.get(hash);
-            if (entry && !b.get(hash) && entry.id === b.id) {
+            const entry = await a.get(hash);
+            if (entry && !(await b.get(hash)) && entry.id === b.id) {
                 res[entry.hash] = entry;
                 traversed[entry.hash] = true;
                 entry.next.forEach(pushToStack);

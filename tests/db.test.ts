@@ -14,7 +14,6 @@ import IdentityProvider from "orbit-db-identity-provider";
 import { delay } from "../src/common";
 import ForeignKey from "../src/database/DAL/foreignKey";
 
-
 class User extends Queriable<User> {
     @PrimaryKey()
     name: string;
@@ -22,8 +21,7 @@ class User extends Queriable<User> {
     @Index()
     age: number;
 
-    toString()
-    {
+    toString() {
         return this.age;
     }
 }
@@ -36,32 +34,27 @@ class Numberr extends Queriable<Numberr> {
     isOdd: boolean;
 }
 
-
-
-describe("Btree", () =>
-{
-    beforeAll(async () =>
-    {
+describe("Btree", () => {
+    beforeAll(async () => {
         IPFSconnector.setConfig(await randomPortsConfigAsync());
         container.register("BtreeNodeChildren", {
-            useClass: ipfsBtreeNodeChildren
+            useClass: ipfsBtreeNodeChildren,
         });
     });
 
-    it('refactor test', async () =>
-    {
-        const id = (await (await IPFSconnector.getInstanceAsync()).node.id()).id;
+    it("refactor test", async () => {
+        const id = (
+            await (await IPFSconnector.getInstanceAsync()).node.id()
+        ).id;
         const identity = await IdentityProvider.createIdentity({
-            id
+            id,
         });
         Database.connect("testDB", identity);
         await Database.use("testDB").execute(
-            async (db1: DatabaseInstance) =>
-            {
+            async (db1: DatabaseInstance) => {
                 const tasks = [];
 
-                for (let i = 0; i < 10; i++)
-                {
+                for (let i = 0; i < 10; i++) {
                     const u = new User();
                     u.name = "test" + i;
                     u.age = i;
@@ -70,11 +63,11 @@ describe("Btree", () =>
 
                 await Promise.all(tasks);
                 const users = await new User().all();
+                console.log(db1);
                 console.log(users);
-            }
+            },
         );
     }, 500000);
-
 
     // it('FK test', async () =>
     // {
@@ -85,19 +78,14 @@ describe("Btree", () =>
     //     u.age = new ForeignKey<Numberr>();
     //     u.age.set(n);
 
-
     //     console.log(await u.age.get());
     // });
 
-
-    it('use DB', async () =>
-    {
+    it("use DB", async () => {
         Database.connect("testDB", "user");
-        await Database.use("testDB").execute(async (db) =>
-        {
+        await Database.use("testDB").execute(async (db) => {
             const promises = [];
-            for (let i = 0; i < 100; i++)
-            {
+            for (let i = 0; i < 100; i++) {
                 const n = new Numberr();
                 n.value = i;
                 promises.push(n.save());
@@ -109,6 +97,4 @@ describe("Btree", () =>
             console.log(db1);
         });
     }, 500000);
-
-
 });

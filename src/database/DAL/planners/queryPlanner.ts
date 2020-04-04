@@ -3,12 +3,12 @@ import { Filter } from "../query/types";
 import DAG from "../../../ipfs/DAG";
 import DatabaseInstance from "../database/databaseInstance";
 import Database from "../database/databaseStore";
-import Log from "../../log/log"
+import Log from "../../log/log";
+import Queriable from "../query/queriable";
 
-enum ConditionTypes
-{
+enum ConditionTypes {
     And,
-    Or
+    Or,
 }
 
 type QueryPlannerCondition = {
@@ -17,203 +17,186 @@ type QueryPlannerCondition = {
     results: Set<any>;
 }[];
 
-export default class QueryPlanner
-{
+export default class QueryPlanner {
     conditions: QueryPlannerCondition = [];
     filters: Filter<any>[] = [];
     skip: number = 0;
+    entity: Queriable<any>;
 
-    entityName: string;
-
-    constructor(entityName: string)
-    {
-        this.entityName = entityName;
+    constructor(entity: Queriable<any>) {
+        this.entity = entity;
     }
 
-    public addAndCondition(condition: PropertyCondition)
-    {
+    get entityName(): string {
+        return this.entity.constructor.name;
+    }
+
+    get entityConstructor(): any {
+        return this.entity.constructor;
+    }
+
+    public addAndCondition(condition: PropertyCondition) {
         this.conditions.push({
             condition,
             type: ConditionTypes.And,
-            results: new Set()
+            results: new Set(),
         });
     }
 
-    public addOrCondition(condition: PropertyCondition)
-    {
+    public addOrCondition(condition: PropertyCondition) {
         this.conditions.push({
             condition,
             type: ConditionTypes.Or,
-            results: new Set()
+            results: new Set(),
         });
     }
 
-    public addFilter(filter: Filter<any>)
-    {
+    public addFilter(filter: Filter<any>) {
         this.filters.push(filter);
     }
 
-    public async getAll()
-    {
+    public async getAll() {
         const results = [];
-        for await (const res of await this.resolve())
-        {
+        for await (const res of await this.resolve()) {
             results.push(res);
         }
         return results;
     }
 
-    public async getFirst()
-    {
-        for await (const res of await this.resolve())
-        {
+    public async getFirst() {
+        for await (const res of await this.resolve()) {
             return res;
         }
     }
 
-    public async *paginate(perPage: number = 20)
-    {
+    public async *paginate(perPage: number = 20) {
         let page = [];
-        for await (const res of await this.resolve())
-        {
+        for await (const res of await this.resolve()) {
             page.push(res);
-            if (page.length === perPage)
-            {
+            if (page.length === perPage) {
                 yield page;
                 page = [];
             }
         }
     }
 
-    public async take(limit: number)
-    {
+    public async take(limit: number) {
         const results = [];
-        for await (const res of await this.resolve())
-        {
+        for await (const res of await this.resolve()) {
             results.push(res);
             if (results.length === limit) break;
         }
         return results;
     }
 
-    public async *iterate()
-    {
+    public async *iterate() {
         yield* await this.resolve();
     }
 
-    public conditionsToFilters()
-    {
+    public conditionsToFilters() {
         let i = this.conditions.length;
-        while (i--)
-        {
+        while (i--) {
             if (
-                !Database.selectedDatabase.getTableByName(this.entityName).hasIndex(
-                    this.conditions[i].condition.property
-                )
-            )
-            {
+                !Database.selectedDatabase
+                    .getTableByName(this.entityName)
+                    .hasIndex(this.conditions[i].condition.property)
+            ) {
                 this.addFilter(
-                    this.conditions[i].condition.comparator.getFilter()
+                    this.conditions[
+                        i
+                    ].condition.comparator.getFilter(),
                 );
                 this.conditions.splice(i, 1);
             }
         }
     }
 
-    private async resolve()
-    {
-        return await Database.selectedDatabase.read(this.getGenerator.bind(this)) as AsyncGenerator;
+    private async resolve() {
+        return (await Database.selectedDatabase.read(
+            this.getGenerator.bind(this),
+        )) as AsyncGenerator;
     }
 
-    private async *getGenerator()
-    {
+    private async *getGenerator() {
         this.conditionsToFilters();
-        if (this.conditions.length === 0)
-        {
+        if (this.conditions.length === 0) {
             yield* this.noCondition();
-        } else if (this.conditions.length === 1)
-        {
+        } else if (this.conditions.length === 1) {
             yield* this.singleCondition();
-        } else
-        {
+        } else {
             yield* this.multipleConditions();
         }
     }
 
-    public async *noCondition()
-    {
-        const index = Database.selectedDatabase.getTableByName(this.entityName).getPrimaryIndex();
+    public async *noCondition() {
+        const index = Database.selectedDatabase
+            .getTableByName(this.entityName)
+            .getPrimaryIndex();
 
-        for await (const result of await index.generatorTraverse())
-        {
+        for await (const result of await index.generatorTraverse()) {
             yield* this.filterAndSkip(result);
         }
     }
 
-    public async *singleCondition()
-    {
-        const index = Database.selectedDatabase.getTableByName(this.entityName).getIndex(this.conditions[0].condition.property);
+    public async *singleCondition() {
+        const index = Database.selectedDatabase
+            .getTableByName(this.entityName)
+            .getIndex(this.conditions[0].condition.property);
 
         for await (const result of await this.conditions[0].condition.comparator.traverse(
-            index
-        ))
-        {
+            index,
+        )) {
             yield* this.filterAndSkip(result);
         }
     }
 
-    public async *multipleConditions()
-    {
-        for (const cond of this.conditions)
-        {
-            const index = Database.selectedDatabase.getTableByName(this.entityName).getIndex(cond.condition.property);
+    public async *multipleConditions() {
+        for (const cond of this.conditions) {
+            const index = Database.selectedDatabase
+                .getTableByName(this.entityName)
+                .getIndex(cond.condition.property);
 
             for await (const result of await cond.condition.comparator.traverse(
-                index
-            ))
-            {
+                index,
+            )) {
                 cond.results.add(result);
             }
         }
 
         let andResults = this.intersection(
-            this.conditions.filter(cond => cond.type == ConditionTypes.And)
+            this.conditions.filter(
+                (cond) => cond.type == ConditionTypes.And,
+            ),
         );
         let orResults = this.union(
-            this.conditions.filter(cond => cond.type == ConditionTypes.Or)
+            this.conditions.filter(
+                (cond) => cond.type == ConditionTypes.Or,
+            ),
         );
 
-        for (const result of new Set([...andResults, ...orResults]))
-        {
+        for (const result of new Set([...andResults, ...orResults])) {
             yield* this.filterAndSkip(result);
         }
     }
 
-    private async *filterAndSkip(result)
-    {
+    private async *filterAndSkip(result) {
         let item;
-        if (this.filters.length > 0)
-        {
+        if (this.filters.length > 0) {
             item = await getLogFromHash(result);
-            for (const filter of this.filters)
-            {
-                if (!filter(item))
-                {
+            for (const filter of this.filters) {
+                if (!filter(item)) {
                     return;
                 }
             }
 
-            if (this.skip > 0)
-            {
+            if (this.skip > 0) {
                 this.skip = this.skip - 1;
                 return;
             }
 
             yield item;
-        } else
-        {
-            if (this.skip > 0)
-            {
+        } else {
+            if (this.skip > 0) {
                 this.skip = this.skip - 1;
                 return;
             }
@@ -222,35 +205,34 @@ export default class QueryPlanner
         }
 
         async function getLogFromHash(hash: string) {
-            return await Log.fromMultihash(Database.selectedDatabase.identity, result);
+            return await Log.fromMultihash(
+                Database.selectedDatabase.identity,
+                result,
+            );
         }
     }
 
     /*
         Make intersection of sets. Take the smallest set an compare each entry 
     */
-    private intersection(conditions: QueryPlannerCondition)
-    {
+    private intersection(conditions: QueryPlannerCondition) {
         let smallestSetIdx = conditions.reduce(
             (min, cond, idx) =>
                 cond.results.size < min.size
                     ? {
-                        conditionIdx: idx,
-                        size: cond.results.size
-                    }
+                          conditionIdx: idx,
+                          size: cond.results.size,
+                      }
                     : min,
             {
                 conditionIdx: 0,
-                size: conditions[0].results.size
-            }
+                size: conditions[0].results.size,
+            },
         ).conditionIdx;
 
-        for (const result of conditions[smallestSetIdx].results)
-        {
-            for (const cond of conditions)
-            {
-                if (!cond.results.has(result))
-                {
+        for (const result of conditions[smallestSetIdx].results) {
+            for (const cond of conditions) {
+                if (!cond.results.has(result)) {
                     conditions[smallestSetIdx].results.delete(result);
                 }
             }
@@ -259,8 +241,7 @@ export default class QueryPlanner
         return conditions[smallestSetIdx].results;
     }
 
-    private union(conditions: QueryPlannerCondition)
-    {
+    private union(conditions: QueryPlannerCondition) {
         // TODO make benchmark
         // let result = new Set;
         // for (const set of array)
@@ -268,10 +249,9 @@ export default class QueryPlanner
         //         result.add(element);
 
         return new Set(
-            (function* ()
-            {
+            (function* () {
                 for (const cond of conditions) yield* cond.results;
-            })()
+            })(),
         );
     }
 }
