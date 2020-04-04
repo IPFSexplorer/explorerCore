@@ -25,7 +25,9 @@ export default class BaseQuery<T> {
 
     public async first(): Promise<T>
     {
-        return this.resultMapper((await this.queryPlanner.getFirst()) as Log);
+        const res = await this.queryPlanner.getFirst()
+        
+        return res ? this.resultMapper((res) as Log): null;
     }
 
     public skip(skip: number)
@@ -67,7 +69,7 @@ export default class BaseQuery<T> {
         {
             return this.conflictSolver(res);
         }
-        return res.heads[0].payload;
+        return this.constructor(res.heads[0].payload);
     }
 
     private conflictSolver(conflict: Log): T

@@ -4,6 +4,7 @@ import QueryPlanner from "../planners/queryPlanner";
 import Database from "../database/databaseStore";
 import JsonType from "serialazy/lib/dist/types/json_type";
 import { Serialize } from "serialazy";
+import IndexMap from "explorer-core/src/database/DAL/indexMap";
 
 
 @Serialize.Type({
@@ -31,6 +32,10 @@ export default class Queriable<T> extends BaseQuery<T> {
             this.queryPlanner.addAndCondition(whereCondition);
             return whereCondition;
         }
+    }
+
+    public async find(primaryKey: any): Promise<T> {
+        return await this.where(IndexMap.getPrimary(this)).equal(primaryKey).first() as T
     }
 
     public async save(): Promise<void>

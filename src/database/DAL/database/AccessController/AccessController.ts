@@ -8,6 +8,7 @@ import AccessBroadcaster from "./AccessBroadcaster";
 
 const TIMEOUT = 10000;
 const WAIT_FOR_MORE_TRANSACTIONS = 3000;
+const POLITE_MODE = false;
 
 export default class DBAccessController extends EventEmitter
 {
@@ -84,34 +85,35 @@ export default class DBAccessController extends EventEmitter
 
     private async getTicket()
     {
-        if (!this.ticket)
-        {
-            this.ticket = new Promise(async function (resolve, reject) 
+        if (POLITE_MODE) {
+            if (!this.ticket)
             {
-                this.resolver = resolve;
-
-                await (await this.getAccessBroadcasterAsync()).request();
-                this.requestAccess(this.id);
-
-                await delay(WAIT_FOR_MORE_TRANSACTIONS);
-
-                while (this.accessChanged && ((this.requests as Set<string>).size > 1) && this.getFirst() != this.id)
+                this.ticket = new Promise(async function (resolve, reject) 
                 {
-                    this.accessChanged = false;
-                    await delay(TIMEOUT);
-                }
+                    this.resolver = resolve;
 
-                console.log("long time nobody takes access or queue is empty");
-                resolve();
-            }.bind(this));
+                    await (await this.getAccessBroadcasterAsync()).request();
+                    this.requestAccess(this.id);
 
-            this.ticket.finally(async () =>
-            {
-                this.takenAccess(this.id);
-                await (await this.getAccessBroadcasterAsync()).take();
-            });
+                    await delay(WAIT_FOR_MORE_TRANSACTIONS);
+
+                    while (this.accessChanged && ((this.requests as Set<string>).size > 1) && this.getFirst() != this.id)
+                    {
+                        this.accessChanged = false;
+                        await delay(TIMEOUT);
+                    }
+
+                    console.log("long time nobody takes access or queue is empty");
+                    resolve();
+                }.bind(this));
+
+                this.ticket.finally(async () =>
+                {
+                    this.takenAccess(this.id);
+                    await (await this.getAccessBroadcasterAsync()).take();
+                });
+            }
         }
-
         return this.ticket;
     }
 

@@ -25,7 +25,7 @@ export default class PubSubListener
 
     async publish(data: PubSubMessage)
     {
-        console.log({ _: "PUB", ...data });
+        //console.log({ _: "PUB", ...data });
 
         // if (data.type === PubSubMessageType.PublishVersion)
         //     console.log({ _: "PUB", ...data });
@@ -42,7 +42,7 @@ export default class PubSubListener
     {
         const message: PubSubMessage = inflate(PubSubMessage, JSON.parse(msg.data.toString()));
 
-        console.log({ _: "SUB", ...message });
+        //console.log({ _: "SUB", ...message });
 
         switch (message.type)
         {
