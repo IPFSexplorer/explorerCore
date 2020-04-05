@@ -43,30 +43,27 @@ describe("Btree", () => {
     });
 
     it("refactor test", async () => {
-        const id = (
-            await (await IPFSconnector.getInstanceAsync()).node.id()
-        ).id;
+        const id = (await (await IPFSconnector.getInstanceAsync()).node.id()).id;
         const identity = await IdentityProvider.createIdentity({
             id,
         });
         Database.connect("testDB", identity);
-        await Database.use("testDB").execute(
-            async (db1: DatabaseInstance) => {
-                const tasks = [];
+        await Database.use("testDB").execute(async (db1: DatabaseInstance) => {
+            Database.selectedDatabase.getOrCreateTableByEntity(new User());
+            const tasks = [];
 
-                for (let i = 0; i < 10; i++) {
-                    const u = new User();
-                    u.name = "test" + i;
-                    u.age = i;
-                    tasks.push(u.save());
-                }
+            for (let i = 0; i < 10; i++) {
+                const u = new User();
+                u.name = "test" + i;
+                u.age = i;
+                tasks.push(u.save());
+            }
 
-                await Promise.all(tasks);
-                const users = await new User().all();
-                console.log(db1);
-                console.log(users);
-            },
-        );
+            await Promise.all(tasks);
+            const users = await new User().all();
+            console.log(db1);
+            console.log(users);
+        });
     }, 500000);
 
     // it('FK test', async () =>
