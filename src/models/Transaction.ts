@@ -1,5 +1,6 @@
-import { Queriable, PrimaryKey } from "explorer-core/src";
 import Address from "./Address";
+import PrimaryKey from "../database/DAL/decorators/primaryKey";
+import Queriable from "../database/DAL/query/queriable";
 
 export default class Transaction extends Queriable<Transaction> {
     @PrimaryKey() txid: string;
@@ -31,8 +32,12 @@ export default class Transaction extends Queriable<Transaction> {
         const tasks: Promise<void>[] = [];
 
         async function findOrCreateAddress(addr: string) {
-            const a = await new Address().find(addr);
-            return a ? a : new Address({ address: addr });
+            let a = await new Address().find(addr);
+            if (!a) {
+                a = new Address({ address: addr });
+                await a.save();
+            }
+            return a;
         }
 
         for (const vin of this.vin) {
@@ -40,9 +45,7 @@ export default class Transaction extends Queriable<Transaction> {
                 for (const addr of vin.addresses) {
                     tasks.push(
                         (async () => {
-                            await (
-                                await findOrCreateAddress(addr)
-                            ).addInput(this, vin);
+                            await (await findOrCreateAddress(addr)).addInput(this, vin);
                         })(),
                     );
                 }
@@ -54,9 +57,7 @@ export default class Transaction extends Queriable<Transaction> {
                 for (const addr of vout.addresses) {
                     tasks.push(
                         (async () => {
-                            await (
-                                await findOrCreateAddress(addr)
-                            ).addOutput(this, vout);
+                            await (await findOrCreateAddress(addr)).addOutput(this, vout);
                         })(),
                     );
                 }

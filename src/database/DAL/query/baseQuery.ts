@@ -24,6 +24,12 @@ export default class BaseQuery<T> {
         );
     }
 
+    public async log(): Promise<Log> {
+        const res = await this.queryPlanner.getFirst();
+
+        return res ? (res as Log) : null;
+    }
+
     public async first(): Promise<T> {
         const res = await this.queryPlanner.getFirst();
 
@@ -65,9 +71,10 @@ export default class BaseQuery<T> {
             return this.conflictSolver(res);
         }
 
-        return new this.queryPlanner.entityConstructor(
-            res.heads[0].payload,
-        );
+        return new this.queryPlanner.entityConstructor({
+            ...res.heads[0].payload,
+            entry: res.heads[0].hash,
+        });
     }
 
     private conflictSolver(conflict: Log): T {

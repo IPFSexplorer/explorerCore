@@ -750,7 +750,6 @@ export default class Log {
      * @return {Promise<Log>} New Log
      */
     static async fromEntry(
-        ipfs: any,
         identity: any,
         sourceEntries: any,
         {
@@ -765,7 +764,6 @@ export default class Log {
     ) {
         // TODO: need to verify the entries with 'key'
         const { logId, entries } = await LogIO.fromEntry(
-            ipfs,
             sourceEntries,
             {
                 length,

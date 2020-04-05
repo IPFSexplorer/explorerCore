@@ -161,7 +161,6 @@ export default class LogIO {
      * @param {function(hash, entry, parent, depth)} options.onProgressCallback
      */
     static async fromEntry(
-        ipfs,
         sourceEntries,
         {
             length = -1,
@@ -171,7 +170,6 @@ export default class LogIO {
             onProgressCallback,
         },
     ) {
-        if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         if (!isDefined(sourceEntries))
             throw new Error("'sourceEntries' must be defined");
 

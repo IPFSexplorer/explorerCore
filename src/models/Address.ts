@@ -1,5 +1,6 @@
-import { Queriable, PrimaryKey, Index } from "explorer-core/src";
 import Transaction from "./Transaction";
+import Queriable from "@/database/DAL/query/queriable";
+import PrimaryKey from "@/database/DAL/decorators/primaryKey";
 
 export default class Address extends Queriable<Address> {
     @PrimaryKey() address: string;
@@ -18,7 +19,7 @@ export default class Address extends Queriable<Address> {
         this.totalSent += vin.value;
         this.balance - vin.value;
 
-        this.save();
+        this.update();
     }
 
     public async addOutput(tx: Transaction, vin: Vout) {
@@ -27,6 +28,6 @@ export default class Address extends Queriable<Address> {
         this.totalReceived += vin.value;
         this.balance + vin.value;
 
-        this.save();
+        this.update();
     }
 }

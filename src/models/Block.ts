@@ -1,5 +1,7 @@
-import { Queriable, PrimaryKey, Index } from "explorer-core/src";
 import Transaction from "./Transaction";
+import PrimaryKey from "../database/DAL/decorators/primaryKey";
+import Index from "../database/DAL/decorators/index";
+import Queriable from "../database/DAL/query/queriable";
 
 export default class Block extends Queriable<Block> {
     @PrimaryKey() hash: string;
@@ -22,9 +24,7 @@ export default class Block extends Queriable<Block> {
     static fromBlockbook(b: BlockbookBlock) {
         const block = new Block(b);
         for (const tx of b.txs) {
-            block.Transactions[tx.txid] = Transaction.fromBlockbook(
-                tx,
-            );
+            block.Transactions[tx.txid] = Transaction.fromBlockbook(tx);
         }
         return block;
     }

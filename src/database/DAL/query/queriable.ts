@@ -5,6 +5,8 @@ import Database from "../database/databaseStore";
 import JsonType from "serialazy/lib/dist/types/json_type";
 import { Serialize } from "serialazy";
 import IndexMap from "../indexMap";
+import Log from "@/database/log/log";
+import Entry from "@/database/log/entry";
 
 @Serialize.Type({
     down: (e: Queriable<any>) => {
@@ -13,6 +15,8 @@ import IndexMap from "../indexMap";
     up: (e) => new Queriable(e as object),
 })
 export default class Queriable<T> extends BaseQuery<T> {
+    entry: string;
+
     constructor(init?: Partial<Queriable<T>>) {
         super();
         Object.assign(this, init);
@@ -33,6 +37,16 @@ export default class Queriable<T> extends BaseQuery<T> {
         return (await this.where(IndexMap.getPrimary(this))
             .equal(primaryKey)
             .first()) as T;
+    }
+
+    public async history(): Promise<Log> {
+        return await this.where(IndexMap.getPrimary(this))
+            .equal(
+                IndexMap.getIndexes(this).indexes[
+                    IndexMap.getPrimary(this)
+                ].keyGetter(this),
+            )
+            .log();
     }
 
     public async save(): Promise<void> {
