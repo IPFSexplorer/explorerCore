@@ -93,7 +93,7 @@ export default class LogIO {
      * @param {function(hash, entry, parent, depth)} options.onProgressCallback
      */
     static async fromEntryHash(
-        ipfs,
+        
         hash,
         {
             length = -1,
@@ -104,7 +104,6 @@ export default class LogIO {
             onProgressCallback,
         },
     ) {
-        if (!isDefined(ipfs)) throw IPFSNotDefinedError();
         if (!isDefined(hash))
             throw new Error("'hash' must be defined");
         // Convert input hash(s) to an array

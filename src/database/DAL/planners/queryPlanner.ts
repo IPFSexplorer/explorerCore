@@ -112,6 +112,7 @@ export default class QueryPlanner {
     }
 
     private async resolve() {
+        this.entity.queryPlanner = null
         return (await Database.selectedDatabase.read(
             this.getGenerator.bind(this),
         )) as AsyncGenerator;

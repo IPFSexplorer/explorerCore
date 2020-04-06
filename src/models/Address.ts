@@ -29,6 +29,6 @@ export default class Address extends Queriable<Address> {
         this.totalReceived += vin.value;
         this.balance + vin.value;
 
-        this.update();
+        await this.update();
     }
 }

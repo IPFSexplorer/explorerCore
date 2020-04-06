@@ -91,7 +91,7 @@ export default class LoggedTransaction implements ITransaction {
         }
 
         database.log.head = entry;
-        return entry;
+        return entry.hash;
 
         //console.log(`Finish: ${this}`);
     }

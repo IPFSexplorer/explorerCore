@@ -677,7 +677,6 @@ export default class Log {
      * @return {Promise<Log>} New Log
      */
     static async fromEntryHash(
-        ipfs: any,
         identity: any,
         hash: any,
         {
@@ -692,7 +691,7 @@ export default class Log {
         } = {},
     ) {
         // TODO: need to verify the entries with 'key'
-        const { entries } = await LogIO.fromEntryHash(ipfs, hash, {
+        const { entries } = await LogIO.fromEntryHash( hash, {
             length,
             exclude,
             timeout,

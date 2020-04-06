@@ -12,7 +12,7 @@ import Log from "../../log/log";
     up: (e) => new Queriable(e as object),
 })
 export default class Queriable<T> extends BaseQuery<T> {
-    entry: string;
+    entryHash: string;
 
     constructor(init?: Partial<Queriable<T>>) {
         super();
@@ -37,24 +37,21 @@ export default class Queriable<T> extends BaseQuery<T> {
     }
 
     public async history(): Promise<Log> {
-        return await this.where(IndexMap.getPrimary(this))
-            .equal(
-                IndexMap.getIndexes(this).indexes[
-                    IndexMap.getPrimary(this)
-                ].keyGetter(this),
-            )
-            .log();
+        return await Log.fromEntryHash(Database.selectedDatabase.identity, this.entryHash)
     }
 
     public async save(): Promise<void> {
-        await Database.selectedDatabase.create(this);
+        this.queryPlanner = null
+        this.entryHash = await Database.selectedDatabase.create(this) as string;
     }
 
     public async update(): Promise<void> {
-        await Database.selectedDatabase.update(this);
+        this.queryPlanner = null
+        this.entryHash = await Database.selectedDatabase.update(this) as string;;
     }
 
     public async delete(): Promise<void> {
         await Database.selectedDatabase.delete(this);
+        this.entryHash = null
     }
 }

@@ -59,9 +59,12 @@ export default class Table {
             const index = this.getIndex(key);
 
             // Update only changed indexes
-            if (index.keyGetter(entity) != index.keyGetter((await log.get(entity.entry)).payload)) {
+            if (index.keyGetter(entity) != index.keyGetter((await log.get(entity.entryHash)).payload)) {
                 promises.push(index.remove(index.keyGetter(entity)));
                 promises.push(index.insert(index.keyGetter(entity), cid));
+            } else {
+                // TODO: update index key with new cid
+                // promises.push(index.update())
             }
         }
 
