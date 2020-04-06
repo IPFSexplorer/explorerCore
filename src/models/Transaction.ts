@@ -1,6 +1,7 @@
 import Address from "./Address";
 import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Queriable from "../database/DAL/query/queriable";
+import "./types";
 
 export default class Transaction extends Queriable<Transaction> {
     @PrimaryKey() txid: string;

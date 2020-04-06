@@ -1,12 +1,9 @@
 import BaseQuery from "./baseQuery";
 import PropertyCondition from "../conditions/propertyCondition";
-import QueryPlanner from "../planners/queryPlanner";
 import Database from "../database/databaseStore";
-import JsonType from "serialazy/lib/dist/types/json_type";
 import { Serialize } from "serialazy";
 import IndexMap from "../indexMap";
-import Log from "@/database/log/log";
-import Entry from "@/database/log/entry";
+import Log from "../../log/log";
 
 @Serialize.Type({
     down: (e: Queriable<any>) => {

@@ -2,6 +2,7 @@ import Transaction from "./Transaction";
 import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Index from "../database/DAL/decorators/index";
 import Queriable from "../database/DAL/query/queriable";
+import "./types";
 
 export default class Block extends Queriable<Block> {
     @PrimaryKey() hash: string;
