@@ -73,7 +73,7 @@ export default class BaseQuery<T> {
 
         return new this.queryPlanner.entityConstructor({
             ...res.heads[0].payload,
-            entry: res.heads[0].hash,
+            entryHash: res.heads[0].hash,
         });
     }
 

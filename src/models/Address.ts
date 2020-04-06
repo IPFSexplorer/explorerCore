@@ -20,7 +20,7 @@ export default class Address extends Queriable<Address> {
         this.totalSent += vin.value;
         this.balance - vin.value;
 
-        this.update();
+        await this.update();
     }
 
     public async addOutput(tx: Transaction, vin: Vout) {
