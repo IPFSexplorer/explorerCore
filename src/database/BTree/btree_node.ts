@@ -93,8 +93,10 @@ export default class BTreeNode<Key, Value> {
         const keys = this.keys;
         const data = this.data;
 
-        let i: number;
-        for (i = 0; i < this.n && comparator(max, keys[i]) > 0; i++)
+        let i = this.n;
+        while (i >= 0 && comparator(max, keys[i]) <= 0) i--;
+
+        for (; i >= 0; i--)
         {
             // If this is not leaf, then before printing key[i],
             // traverse the subtree rooted with child C[i].
@@ -321,16 +323,18 @@ export default class BTreeNode<Key, Value> {
         if (this.leaf) return this;
 
         // Find the first key greater than or equal to k
-        let i = 0;
+        let i = this.n - 1;
         const keys = this.keys;
-        while (i < this.n && comparator(max, keys[i]) > 0) i++;
+        while (i > 0 && comparator(max, keys[i]) > 0) i--;
 
         // Go to the appropriate child
         if (i == 0)
         {
+            console.log(this)
             return await (await this.children.getChild(i)).searchLess(max, comparator);
         } else
         {
+            console.log(this)
             // this node is subtree of range
             return this;
         }
