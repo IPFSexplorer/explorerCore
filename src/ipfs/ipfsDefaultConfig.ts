@@ -13,8 +13,9 @@ export async function randomPortsConfigAsync() {
             Addresses: {
                 Swarm: [
                     "/ip4/0.0.0.0/tcp/" + (await getPort()),
-                    // "/ip4/127.0.0.1/tcp/9878/ws",
-                    "/dns4/xxx/tcp/9090/ws/p2p-webrtc-star",
+                    "/ip4/127.0.0.1/tcp/9878/ws",
+                    "/ip4/127.0.0.1/tcp/9090/ws/p2p-webrtc-star",
+                    "/dns4/xxx/tcp/127.0.0.1/ws/p2p-webrtc-star",
                 ],
                 API: "/ip4/127.0.0.1/tcp/" + (await getPort()),
                 Gateway: "/ip4/127.0.0.1/tcp/" + (await getPort()),
@@ -53,7 +54,7 @@ export function browserConfigAsync() {
                 Swarm: [
                     // This is a public webrtc-star server
                     // '/dns4/star-signal.cloud.ipfs.team/wss/p2p-webrtc-star'
-                    "/ip4/127.0.0.1/tcp/9090/wss/p2p-webrtc-star",
+                    "/ip4/127.0.0.1/tcp/9090/ws/p2p-webrtc-star",
                 ],
             },
         },
