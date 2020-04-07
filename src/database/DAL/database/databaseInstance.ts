@@ -21,6 +21,7 @@ import AsyncLock from "async-lock";
 import IndexMap from "../indexMap";
 import DAG from "../../../ipfs/DAG";
 import ReadTransaction from "./transactions/ReadTransaction";
+import logger from "../../../logger";
 
 export default class DatabaseInstance {
     @SerializeAnObjectOf(Table)
@@ -62,18 +63,11 @@ export default class DatabaseInstance {
         this.pubSubListener = new PubSubListener(this.databaseName);
         this.pubSubListener.start();
 
-        this.accessController = new DBAccessController(
-            this.databaseName,
-        );
+        this.accessController = new DBAccessController(this.databaseName);
     }
 
-    public async processTransaction(
-        transaction: ITransaction,
-        toBeginning = false,
-    ) {
-        const queueFunction = toBeginning
-            ? this.transactionsQueue.unshift
-            : this.transactionsQueue.push;
+    public async processTransaction(transaction: ITransaction, toBeginning = false) {
+        const queueFunction = toBeginning ? this.transactionsQueue.unshift : this.transactionsQueue.push;
 
         // TODO add reject on error
         return new Promise((resolve, reject) => {
@@ -113,14 +107,12 @@ export default class DatabaseInstance {
     }
 
     public getTableByName(tableName: string): Table {
-        if (this.tables.hasOwnProperty(tableName))
-            return this.tables[tableName];
+        if (this.tables.hasOwnProperty(tableName)) return this.tables[tableName];
         else return null;
     }
 
     public getTableByEntity(entity: Queriable<any>): Table {
-        if (this.tables.hasOwnProperty(entity.constructor.name))
-            return this.tables[entity.constructor.name];
+        if (this.tables.hasOwnProperty(entity.constructor.name)) return this.tables[entity.constructor.name];
         else return null;
     }
 
@@ -128,18 +120,11 @@ export default class DatabaseInstance {
         if (!this.getTableByEntity(entity)) {
             const indexes = {};
 
-            for (const property in IndexMap.getIndexes(entity)
-                .indexes) {
+            for (const property in IndexMap.getIndexes(entity).indexes) {
                 indexes[property] = new BTree(
-                    IndexMap.getIndexes(entity).indexes[
-                        property
-                    ].branching,
-                    IndexMap.getIndexes(entity).indexes[
-                        property
-                    ].comparator,
-                    IndexMap.getIndexes(entity).indexes[
-                        property
-                    ].keyGetter,
+                    IndexMap.getIndexes(entity).indexes[property].branching,
+                    IndexMap.getIndexes(entity).indexes[property].comparator,
+                    IndexMap.getIndexes(entity).indexes[property].keyGetter,
                 );
             }
 
@@ -155,9 +140,7 @@ export default class DatabaseInstance {
 
     public async toMultihash() {
         const res = {};
-        Object.keys(this.tables).forEach(
-            (k) => (res[k] = deflate(this.tables[k])),
-        );
+        Object.keys(this.tables).forEach((k) => (res[k] = deflate(this.tables[k])));
         return await DAG.PutAsync(res);
     }
 
@@ -165,29 +148,29 @@ export default class DatabaseInstance {
         const tables = await read(cid, {});
         this.tables = {};
 
-        Object.keys(tables).forEach(
-            (k) => (this.tables[k] = inflate(Table, tables[k])),
-        );
+        Object.keys(tables).forEach((k) => (this.tables[k] = inflate(Table, tables[k])));
         return;
     }
 
     async lock(fn) {
-        return await this._lock.acquire(
-            this.databaseName,
-            async (done) => {
-                done(null, await fn());
-            },
-        );
+        return await this._lock.acquire(this.databaseName, async (done) => {
+            done(null, await fn());
+        });
     }
 
     public async syncLog(hash: string) {
         await this.lock(async () => {
-            const dbLog = await DBLog.fromMultihash(
-                this.identity,
-                this.databaseName,
-                hash,
-            );
-            await this.log.merge(dbLog);
+            try {
+                if (this.log.length === 0 || (await this.log.toMultihash()) != hash) {
+                    const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
+                    await this.log.merge(dbLog);
+                } else {
+                    logger.info("already up to date DB");
+                }
+            } catch (e) {
+                console.log(e);
+                logger.error(e.toString());
+            }
         });
 
         return;

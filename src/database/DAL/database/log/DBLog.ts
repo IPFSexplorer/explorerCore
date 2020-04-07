@@ -43,19 +43,17 @@ export default class DBLog extends Log {
             clock,
             concurrency,
         });
-        this._head = head;
+        this.head = head;
         this.identity = identity;
     }
 
     public async merge(log: DBLog) {
-        console.time("merge");
         let thisHead: Entry = this.head;
         let otherHead: Entry = log.head;
         const rollbackOperations = new TransactionsBulk();
 
         if (!thisHead) {
             await this.migrate(log, rollbackOperations);
-            console.timeEnd("merge");
             return;
         }
 
@@ -102,14 +100,13 @@ export default class DBLog extends Log {
         } else {
             await this.join(log);
             if (this.head.clock.time < log.head.clock.time) {
-                this._head = log.head.hash;
+                this.head = log.head;
             }
             this._clock = new LamportClock(
                 this.clock.id,
                 this.head.clock.time,
             );
         }
-        console.timeEnd("merge");
     }
 
     public getHeadList() {
@@ -135,7 +132,7 @@ export default class DBLog extends Log {
                 true,
             );
         await this.join(log);
-        this._head = log.head.hash;
+        this.head = log.head;
         this._clock = new LamportClock(
             this.clock.id,
             this.head.clock.time,
