@@ -94,7 +94,7 @@ export default class BTreeNode<Key, Value> {
         const data = this.data;
 
         let i = this.n;
-        while (i >= 0 && comparator(max, keys[i]) <= 0) i--;
+        while (i > 0 && comparator(keys[i-1], max) >= 0) i--;
 
         for (; i >= 0; i--)
         {
@@ -105,7 +105,7 @@ export default class BTreeNode<Key, Value> {
                     max,
                     comparator
                 );
-            yield data[i];
+            yield data[i - 1];
         }
 
         // Print the subtree rooted with last child
@@ -320,15 +320,24 @@ export default class BTreeNode<Key, Value> {
         comparator: Comparator<Key>
     ): Promise<BTreeNode<Key, Value>>
     {
-        if (this.leaf) return this;
+        if (this.leaf) {
+            console.log(this)
+            return this;
+        };
 
-        // Find the first key greater than or equal to k
-        let i = this.n - 1;
+        // Find the first key less than or equal to k
+        let i = 0;
         const keys = this.keys;
-        while (i > 0 && comparator(max, keys[i]) > 0) i--;
+
+        while (i < this.n && comparator(max, keys[i]) > 0) {
+            console.log({max, actual:keys[i], res: comparator(max, keys[i])})
+            i++;
+        };
+        i--
+        console.log(i)
 
         // Go to the appropriate child
-        if (i == 0)
+        if (i == -1)
         {
             console.log(this)
             return await (await this.children.getChild(i)).searchLess(max, comparator);

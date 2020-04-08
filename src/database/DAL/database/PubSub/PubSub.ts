@@ -42,7 +42,7 @@ export default class PubSubListener
     {
         const message: PubSubMessage = inflate(PubSubMessage, JSON.parse(msg.data.toString()));
 
-        //console.log({ _: "SUB", ...message });
+        console.log({ _: "SUB", ...message });
 
         switch (message.type)
         {

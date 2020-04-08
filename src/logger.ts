@@ -29,7 +29,7 @@ const options: winston.LoggerOptions = {
     ]
 };
 
-const logger = winston.createLogger(options);
+const logger = winston.createLogger();
 
 if (process.env.NODE_ENV !== "production") {
     logger.debug("Logging initialized at debug level");
