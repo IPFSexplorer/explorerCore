@@ -60,7 +60,7 @@ describe("Btree", () => {
             }
 
             await Promise.all(tasks);
-            const users = await new User().all();
+            const users = await Promise.all(await new User().all());
             console.log(db1);
             console.log(users);
         });
