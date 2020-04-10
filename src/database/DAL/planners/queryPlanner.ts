@@ -65,20 +65,29 @@ export default class QueryPlanner {
     }
 
     public async getFirst() {
-        for await (const res of await this.resolve()) {
-            return res;
-        }
+        return await (await (await this.resolve()).next()).value;
     }
 
-    public async *paginate(perPage: number = 20) {
-        let page = [];
-        for await (const res of await this.resolve()) {
-            page.push(res);
-            if (page.length === perPage) {
-                yield page;
-                page = [];
-            }
-        }
+    public async paginate(perPage: number = 20) {
+        const iterator = await this.resolve();
+
+        return {
+            [Symbol.asyncIterator]: () => {
+                let done = false;
+                return {
+                    next: async () => {
+                        let page = [];
+                        while (done || page.length === perPage) {
+                            let res = await iterator.next();
+                            if (!res.done) page.push(res.value);
+                            else done = true;
+                        }
+
+                        return { value: page, done };
+                    },
+                };
+            },
+        };
     }
 
     public async take(limit: number) {
@@ -90,8 +99,8 @@ export default class QueryPlanner {
         return results;
     }
 
-    public async *iterate() {
-        yield* await this.resolve();
+    public async iterate() {
+        return await this.resolve();
     }
 
     public conditionsToFilters() {
@@ -111,41 +120,56 @@ export default class QueryPlanner {
     private async resolve() {
         this.entity.queryPlanner = null;
         console.log("added read transaction");
-        return (await Database.selectedDatabase.read(this.getGenerator.bind(this))) as AsyncGenerator;
+        return (await await Database.selectedDatabase.read(this.getGenerator.bind(this))) as AsyncGenerator;
     }
 
-    private async *getGenerator() {
+    private async getGenerator() {
         console.log("read transactions started to execute");
         this.conditionsToFilters();
         if (this.conditions.length === 0) {
-            yield* this.noCondition();
+            return await this.noCondition();
         } else if (this.conditions.length === 1) {
-            yield* this.singleCondition();
+            return await this.singleCondition();
         } else {
-            yield* this.multipleConditions();
+            return await this.multipleConditions();
         }
     }
 
-    public async *noCondition() {
+    public async noCondition() {
         const index = Database.selectedDatabase.getTableByName(this.entityName).getPrimaryIndex();
 
-        for await (const result of await index.generatorTraverse()) {
-            yield* this.filterAndSkip(result);
-        }
+        const iterator = await index.generatorTraverse();
+        return {
+            [Symbol.asyncIterator]: () => {
+                return {
+                    next: async () => {
+                        const { value, done } = await iterator.next();
+                        return { value: this.filterAndSkip(value), done };
+                    },
+                };
+            },
+        };
     }
 
-    public async *singleCondition() {
+    public async singleCondition() {
         const index = Database.selectedDatabase
             .getTableByName(this.entityName)
             .getIndex(this.conditions[0].condition.property);
 
-        for await (const result of await this.conditions[0].condition.comparator.traverse(index)) {
-            console.log("get item");
-            yield* this.filterAndSkip(result);
-        }
+        const iterator = await this.conditions[0].condition.comparator.traverse(index);
+        return {
+            [Symbol.asyncIterator]: () => {
+                return {
+                    next: async () => {
+                        const { value, done } = await iterator.next();
+                        return { value: this.filterAndSkip(value), done };
+                    },
+                };
+            },
+        };
     }
 
-    public async *multipleConditions() {
+    public async multipleConditions() {
         for (const cond of this.conditions) {
             const index = Database.selectedDatabase.getTableByName(this.entityName).getIndex(cond.condition.property);
 
@@ -157,41 +181,44 @@ export default class QueryPlanner {
         let andResults = this.intersection(this.conditions.filter((cond) => cond.type == ConditionTypes.And));
         let orResults = this.union(this.conditions.filter((cond) => cond.type == ConditionTypes.Or));
 
-        for (const result of new Set([...andResults, ...orResults])) {
-            yield* this.filterAndSkip(result);
-        }
+        const iterator = new Set([...andResults, ...orResults])[Symbol.iterator]();
+
+        return {
+            [Symbol.asyncIterator]: () => {
+                return {
+                    next: async () => {
+                        const { value, done } = iterator.next();
+                        return { value: this.filterAndSkip(value), done };
+                    },
+                };
+            },
+        };
     }
 
-    private async *filterAndSkip(result) {
-        let item;
+    private async filterAndSkip(result) {
+        let item = this.resultMapper(result);
         if (this.filters.length > 0) {
-            item = await getEntryFromHash(result);
             for (const filter of this.filters) {
-                if (!filter(item)) {
+                if (!filter(await item)) {
                     return;
                 }
             }
-
-            if (this.skip > 0) {
-                this.skip = this.skip - 1;
-                return;
-            }
-
-            yield item;
-        } else {
-            if (this.skip > 0) {
-                this.skip = this.skip - 1;
-                return;
-            }
-
-            yield await getEntryFromHash(result);
-            console.log("finish making entry from hash");
         }
 
-        async function getEntryFromHash(hash: string): Promise<Entry> {
-            console.log("start making entry from hash");
-            return await Entry.fromMultihash(hash);
+        if (this.skip > 0) {
+            this.skip = this.skip - 1;
+            return;
         }
+
+        return item;
+    }
+
+    private async resultMapper(res: Promise<Entry>): Promise<Queriable<any>> {
+        const entry = await Entry.fromMultihash(res);
+        return new this.entityConstructor({
+            ...entry.payload,
+            entry: entry.hash,
+        });
     }
 
     /*

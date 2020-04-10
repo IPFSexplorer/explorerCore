@@ -39,7 +39,7 @@ export default class DBLog extends Log {
             sortFn: SortByEntryHash,
             access,
             entries,
-            heads,
+            heads:[],
             clock,
             concurrency,
         });
