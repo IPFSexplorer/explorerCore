@@ -65,11 +65,11 @@ export default class QueryPlanner {
     }
 
     public async getFirst() {
-        return await (await (await this.resolve()).next()).value;
+        return await (await (await this.resolve())[Symbol.asyncIterator]().next()).value;
     }
 
     public async paginate(perPage: number = 20) {
-        const iterator = await this.resolve();
+        const iterator = await this.resolve()[Symbol.asyncIterator]();
 
         return {
             [Symbol.asyncIterator]: () => {
@@ -119,12 +119,17 @@ export default class QueryPlanner {
 
     private async resolve() {
         this.entity.queryPlanner = null;
-        console.log("added read transaction");
-        return (await await Database.selectedDatabase.read(this.getGenerator.bind(this))) as AsyncGenerator;
+        return await (await Database.selectedDatabase.read(this.getGenerator.bind(this))) as  Promise<{
+            [Symbol.asyncIterator]: () => {
+                next: () => Promise<{
+                    value: Promise<Queriable<any>>;
+                    done: any;
+                }>;
+            };
+        }>;
     }
 
     private async getGenerator() {
-        console.log("read transactions started to execute");
         this.conditionsToFilters();
         if (this.conditions.length === 0) {
             return await this.noCondition();
@@ -141,12 +146,7 @@ export default class QueryPlanner {
         const iterator = await index.generatorTraverse();
         return {
             [Symbol.asyncIterator]: () => {
-                return {
-                    next: async () => {
-                        const { value, done } = await iterator.next();
-                        return { value: this.filterAndSkip(value), done };
-                    },
-                };
+                return this.nextFunction(iterator)
             },
         };
     }
@@ -159,12 +159,7 @@ export default class QueryPlanner {
         const iterator = await this.conditions[0].condition.comparator.traverse(index);
         return {
             [Symbol.asyncIterator]: () => {
-                return {
-                    next: async () => {
-                        const { value, done } = await iterator.next();
-                        return { value: this.filterAndSkip(value), done };
-                    },
-                };
+                return this.nextFunction(iterator)
             },
         };
     }
@@ -185,12 +180,16 @@ export default class QueryPlanner {
 
         return {
             [Symbol.asyncIterator]: () => {
-                return {
-                    next: async () => {
-                        const { value, done } = iterator.next();
-                        return { value: this.filterAndSkip(value), done };
-                    },
-                };
+                return this.nextFunction(iterator)
+            },
+        };
+    }
+
+    private nextFunction (iterator : IterableIterator<any>) {
+        return {
+            next: async () => {
+                const { value, done } = await iterator.next();
+                return { value: done ? null : this.filterAndSkip(value), done };
             },
         };
     }

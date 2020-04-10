@@ -21,7 +21,7 @@ export default class BaseQuery<T> {
     }
 
     public async first(): Promise<T> {
-        return await this.queryPlanner.getFirst();
+        return await this.queryPlanner.getFirst() as unknown as T;
     }
 
     public skip(skip: number) {

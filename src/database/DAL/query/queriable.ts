@@ -31,7 +31,7 @@ export default class Queriable<T> extends BaseQuery<T> {
     }
 
     public async find(primaryKey: any): Promise<T> {
-        return (await this.where(IndexMap.getPrimary(this))
+        return await (await this.where(IndexMap.getPrimary(this))
             .equal(primaryKey)
             .first()) as T;
     }

@@ -17,17 +17,17 @@ export default class Address extends Queriable<Address> {
     public async addInput(tx: Transaction, vin: Vin) {
         this.Transactions[tx.txid] = tx;
 
-        this.totalSent += vin.value;
-        this.balance - vin.value;
+        this.totalSent +=  parseInt(vin.value);
+        this.balance -=  parseInt(vin.value);
 
-        this.update();
+        await this.update();
     }
 
-    public async addOutput(tx: Transaction, vin: Vout) {
+    public async addOutput(tx: Transaction, vout: Vout) {
         this.Transactions[tx.txid] = tx;
 
-        this.totalReceived += vin.value;
-        this.balance + vin.value;
+        this.totalReceived += parseInt(vout.value);
+        this.balance +=  parseInt(vout.value);
 
         await this.update();
     }

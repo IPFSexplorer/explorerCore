@@ -20,7 +20,7 @@ export default class Table {
 
     public async insert(entity: Queriable<any>, identity) {
         const promises = [];
-
+        entity.queryPlanner = null
         const log = new Log(identity, {
             logId: this.getPrimaryIndex().keyGetter(entity),
         });
@@ -50,22 +50,16 @@ export default class Table {
 
     public async update(entity: Queriable<any>) {
         const promises = [];
-
+        entity.queryPlanner = null
         const log = await entity.history();
-        await log.append(entity);
+        const entry = await log.append(entity);
 
-        const cid = await log.toMultihash();
+        const cid = entry.hash;
         for (const key in this.indexes) {
             const index = this.getIndex(key);
 
-            // Update only changed indexes
-            if (index.keyGetter(entity) != index.keyGetter((await log.get(entity.entryHash)).payload)) {
-                promises.push(index.remove(index.keyGetter(entity)));
-                promises.push(index.insert(index.keyGetter(entity), cid));
-            } else {
-                // TODO: update index key with new cid
-                // promises.push(index.update())
-            }
+            promises.push(index.remove(index.keyGetter(entity)));
+            promises.push(index.insert(index.keyGetter(entity), cid));
         }
 
         await Promise.all(promises);

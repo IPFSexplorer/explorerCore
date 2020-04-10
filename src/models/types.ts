@@ -6,7 +6,7 @@ type Vin = {
     n: number;
     addresses: string[];
     isAddress: boolean;
-    value: number;
+    value: string;
     hex: string;
     asm: string;
     coinbase: string;
@@ -14,7 +14,7 @@ type Vin = {
 
 // Vout contains information about single transaction output
 type Vout = {
-    value: number;
+    value: string;
     n: number;
     spent: boolean;
     spentTxId: string;
