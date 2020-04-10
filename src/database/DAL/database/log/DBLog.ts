@@ -52,6 +52,7 @@ export default class DBLog extends Log {
         let otherHead: Entry = log.head;
         const rollbackOperations = new TransactionsBulk();
 
+        console.log("start migrate")
         if (!thisHead) {
             await this.migrate(log, rollbackOperations);
             return;
@@ -133,6 +134,7 @@ export default class DBLog extends Log {
             );
         await this.join(log);
         this.head = log.head;
+        this._length = log.length
         this._clock = new LamportClock(
             this.clock.id,
             this.head.clock.time,

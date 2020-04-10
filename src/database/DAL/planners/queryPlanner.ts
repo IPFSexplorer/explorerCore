@@ -113,12 +113,14 @@ export default class QueryPlanner {
 
     private async resolve() {
         this.entity.queryPlanner = null
+        console.log("added read transaction")
         return (await Database.selectedDatabase.read(
             this.getGenerator.bind(this),
         )) as AsyncGenerator;
     }
 
     private async *getGenerator() {
+        console.log("read transactions started to execute")
         this.conditionsToFilters();
         if (this.conditions.length === 0) {
             yield* this.noCondition();
@@ -147,6 +149,7 @@ export default class QueryPlanner {
         for await (const result of await this.conditions[0].condition.comparator.traverse(
             index,
         )) {
+            console.log("get item")
             yield* this.filterAndSkip(result);
         }
     }
@@ -203,12 +206,14 @@ export default class QueryPlanner {
             }
 
             yield await getLogFromHash(result);
+            console.log("finish making log from hash")
         }
 
         async function getLogFromHash(hash: string) {
+            console.log("start making log from hash")
             return await Log.fromMultihash(
                 Database.selectedDatabase.identity,
-                result,
+                hash,
             );
         }
     }

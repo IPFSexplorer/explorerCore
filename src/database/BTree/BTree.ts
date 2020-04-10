@@ -211,7 +211,9 @@ export default class BTree<Key, Value> {
     }
 
     async generatorLess(max: Key) {
+        console.log("start find btree root")
         const subtree = await this.searchLess(max);
+        console.log("finish find btree root")
         return subtree === null
             ? []
             : subtree.generatorLess(max, this.comparator);

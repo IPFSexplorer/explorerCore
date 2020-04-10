@@ -50,6 +50,7 @@ export default class DatabaseInstance {
     pubSubListener: PubSubListener;
     accessController: DBAccessController;
     private _lock: any;
+    private _dbHash: string;
 
     constructor(init?: Partial<DatabaseInstance>) {
         Object.assign(this, init);
@@ -159,18 +160,22 @@ export default class DatabaseInstance {
     }
 
     public async syncLog(hash: string) {
+        if (this._dbHash === hash) {
+            logger.info("already up to date DB");
+            return
+        }
+
         await this.lock(async () => {
+            console.log("start to sync")
             try {
-                if (this.log.length === 0 || (await this.log.toMultihash()) != hash) {
-                    const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
-                    await this.log.merge(dbLog);
-                } else {
-                    logger.info("already up to date DB");
-                }
+                const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
+                await this.log.merge(dbLog);
+                this._dbHash = hash
             } catch (e) {
                 console.log(e);
                 logger.error(e.toString());
             }
+            console.log("syn finish")
         });
 
         return;
