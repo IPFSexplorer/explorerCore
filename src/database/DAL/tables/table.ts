@@ -24,9 +24,9 @@ export default class Table {
         const log = new Log(identity, {
             logId: this.getPrimaryIndex().keyGetter(entity),
         });
-        await log.append(entity);
+        const entry = await log.append(entity);
 
-        const cid = await log.toMultihash();
+        const cid = entry.hash;
         for (const key in this.indexes) {
             const index = this.getIndex(key);
             promises.push(index.insert(index.keyGetter(entity), cid));

@@ -2,15 +2,13 @@ import QueryPlanner from "../planners/queryPlanner";
 import { Filter } from "./types";
 import Log from "../../log/log";
 import Queriable from "./queriable";
+import Entry from "../../log/entry";
 
 export default class BaseQuery<T> {
     protected _queryPlanner: QueryPlanner;
 
     get queryPlanner() {
-        if (!this._queryPlanner)
-            this._queryPlanner = new QueryPlanner(
-                (this as any) as Queriable<T>,
-            );
+        if (!this._queryPlanner) this._queryPlanner = new QueryPlanner((this as any) as Queriable<T>);
         return this._queryPlanner;
     }
 
@@ -19,9 +17,7 @@ export default class BaseQuery<T> {
     }
 
     public async all(): Promise<Array<T>> {
-        return (await this.queryPlanner.getAll()).map((res) =>
-            this.resultMapper(res),
-        );
+        return (await this.queryPlanner.getAll()).map((res) => this.resultMapper(res));
     }
 
     public async log(): Promise<Log> {
@@ -42,14 +38,10 @@ export default class BaseQuery<T> {
     }
 
     public async take(limit: number): Promise<Array<T>> {
-        return (await this.queryPlanner.take(limit)).map((res) =>
-            this.resultMapper(res),
-        );
+        return (await this.queryPlanner.take(limit)).map((res) => this.resultMapper(res));
     }
 
-    public async *paginate(
-        perPage: number,
-    ): AsyncGenerator<Array<T>, void, Array<T>> {
+    public async *paginate(perPage: number): AsyncGenerator<Array<T>, void, Array<T>> {
         for await (const res of this.queryPlanner.paginate(perPage)) {
             yield res.map((res) => this.resultMapper(res));
         }
@@ -57,7 +49,7 @@ export default class BaseQuery<T> {
 
     public async *iterate(): AsyncGenerator<T, void, T> {
         for await (const res of this.queryPlanner.iterate()) {
-            yield this.resultMapper(res as Log);
+            yield this.resultMapper(res as Entry);
         }
     }
 
@@ -66,14 +58,14 @@ export default class BaseQuery<T> {
         return this;
     }
 
-    private resultMapper(res: Log): T {
-        if (res.heads.length > 1) {
-            return this.conflictSolver(res);
-        }
+    private resultMapper(res: Entry): T {
+        // if (res.heads.length > 1) {
+        //     return this.conflictSolver(res);
+        // }
 
         return new this.queryPlanner.entityConstructor({
-            ...res.heads[0].payload,
-            entry: res.heads[0].hash,
+            ...res.payload,
+            entry: res.hash,
         });
     }
 

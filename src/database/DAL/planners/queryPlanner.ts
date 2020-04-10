@@ -5,6 +5,7 @@ import DatabaseInstance from "../database/databaseInstance";
 import Database from "../database/databaseStore";
 import Log from "../../log/log";
 import Queriable from "../query/queriable";
+import Entry from "../../log/entry";
 
 enum ConditionTypes {
     And,
@@ -101,26 +102,20 @@ export default class QueryPlanner {
                     .getTableByName(this.entityName)
                     .hasIndex(this.conditions[i].condition.property)
             ) {
-                this.addFilter(
-                    this.conditions[
-                        i
-                    ].condition.comparator.getFilter(),
-                );
+                this.addFilter(this.conditions[i].condition.comparator.getFilter());
                 this.conditions.splice(i, 1);
             }
         }
     }
 
     private async resolve() {
-        this.entity.queryPlanner = null
-        console.log("added read transaction")
-        return (await Database.selectedDatabase.read(
-            this.getGenerator.bind(this),
-        )) as AsyncGenerator;
+        this.entity.queryPlanner = null;
+        console.log("added read transaction");
+        return (await Database.selectedDatabase.read(this.getGenerator.bind(this))) as AsyncGenerator;
     }
 
     private async *getGenerator() {
-        console.log("read transactions started to execute")
+        console.log("read transactions started to execute");
         this.conditionsToFilters();
         if (this.conditions.length === 0) {
             yield* this.noCondition();
@@ -132,9 +127,7 @@ export default class QueryPlanner {
     }
 
     public async *noCondition() {
-        const index = Database.selectedDatabase
-            .getTableByName(this.entityName)
-            .getPrimaryIndex();
+        const index = Database.selectedDatabase.getTableByName(this.entityName).getPrimaryIndex();
 
         for await (const result of await index.generatorTraverse()) {
             yield* this.filterAndSkip(result);
@@ -146,37 +139,23 @@ export default class QueryPlanner {
             .getTableByName(this.entityName)
             .getIndex(this.conditions[0].condition.property);
 
-        for await (const result of await this.conditions[0].condition.comparator.traverse(
-            index,
-        )) {
-            console.log("get item")
+        for await (const result of await this.conditions[0].condition.comparator.traverse(index)) {
+            console.log("get item");
             yield* this.filterAndSkip(result);
         }
     }
 
     public async *multipleConditions() {
         for (const cond of this.conditions) {
-            const index = Database.selectedDatabase
-                .getTableByName(this.entityName)
-                .getIndex(cond.condition.property);
+            const index = Database.selectedDatabase.getTableByName(this.entityName).getIndex(cond.condition.property);
 
-            for await (const result of await cond.condition.comparator.traverse(
-                index,
-            )) {
+            for await (const result of await cond.condition.comparator.traverse(index)) {
                 cond.results.add(result);
             }
         }
 
-        let andResults = this.intersection(
-            this.conditions.filter(
-                (cond) => cond.type == ConditionTypes.And,
-            ),
-        );
-        let orResults = this.union(
-            this.conditions.filter(
-                (cond) => cond.type == ConditionTypes.Or,
-            ),
-        );
+        let andResults = this.intersection(this.conditions.filter((cond) => cond.type == ConditionTypes.And));
+        let orResults = this.union(this.conditions.filter((cond) => cond.type == ConditionTypes.Or));
 
         for (const result of new Set([...andResults, ...orResults])) {
             yield* this.filterAndSkip(result);
@@ -186,7 +165,7 @@ export default class QueryPlanner {
     private async *filterAndSkip(result) {
         let item;
         if (this.filters.length > 0) {
-            item = await getLogFromHash(result);
+            item = await getEntryFromHash(result);
             for (const filter of this.filters) {
                 if (!filter(item)) {
                     return;
@@ -205,16 +184,13 @@ export default class QueryPlanner {
                 return;
             }
 
-            yield await getLogFromHash(result);
-            console.log("finish making log from hash")
+            yield await getEntryFromHash(result);
+            console.log("finish making entry from hash");
         }
 
-        async function getLogFromHash(hash: string) {
-            console.log("start making log from hash")
-            return await Log.fromMultihash(
-                Database.selectedDatabase.identity,
-                hash,
-            );
+        async function getEntryFromHash(hash: string): Promise<Entry> {
+            console.log("start making entry from hash");
+            return await Entry.fromMultihash(hash);
         }
     }
 
