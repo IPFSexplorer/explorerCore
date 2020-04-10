@@ -29,7 +29,7 @@ export default class BaseQuery<T> {
     public async first(): Promise<T> {
         const res = await this.queryPlanner.getFirst();
 
-        return res ? this.resultMapper(res as Log) : null;
+        return res ? this.resultMapper(res as Entry) : null;
     }
 
     public skip(skip: number) {
