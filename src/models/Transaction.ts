@@ -2,6 +2,7 @@ import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Queriable from "../database/DAL/query/queriable";
 import "./types";
 import InputsOutputs, { spendingType } from "./InputsOutputs";
+import Index from "../database/DAL/decorators";
 
 export default class Transaction extends Queriable<Transaction> {
     @PrimaryKey() txid: string;
@@ -10,7 +11,7 @@ export default class Transaction extends Queriable<Transaction> {
     vin: Vin[];
     vout: Vout[];
     blockHash: string;
-    blockHeight: number;
+    @Index() blockHeight: number;
     confirmations: number;
     blockTime: number;
     size: number;
