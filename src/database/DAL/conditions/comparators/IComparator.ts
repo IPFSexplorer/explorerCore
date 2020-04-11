@@ -1,4 +1,4 @@
-import BTree from "../../../BTree/Btree";
+import BTree from "../../../BTree/BTree";
 import { Filter } from "../../query/types";
 
 export default interface IComparator {

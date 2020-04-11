@@ -8,7 +8,7 @@ import Index from "../src/database/DAL/decorators/index";
 import Database from "../src/database/DAL/database/databaseStore";
 import IPFSconnector from "../src/ipfs/IPFSConnector";
 import { randomPortsConfigAsync } from "../src/ipfs/ipfsDefaultConfig";
-import { DEFAULT_COMPARATOR } from "../src/database/BTree/Btree";
+import { DEFAULT_COMPARATOR } from "../src/database/BTree/BTree";
 import DatabaseInstance from "../src/database/DAL/database/databaseInstance";
 import IdentityProvider from "orbit-db-identity-provider";
 import { delay } from "../src/common";
