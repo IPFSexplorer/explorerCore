@@ -18,15 +18,9 @@ export default class Table {
         Object.assign(this, init);
     }
 
-    public async insert(entity: Queriable<any>, identity) {
+    public async insert(entity: Queriable<any>, cid) {
         const promises = [];
-        entity.queryPlanner = null
-        const log = new Log(identity, {
-            logId: this.getPrimaryIndex().keyGetter(entity),
-        });
-        const entry = await log.append(entity);
 
-        const cid = entry.hash;
         for (const key in this.indexes) {
             const index = this.getIndex(key);
             promises.push(index.insert(index.keyGetter(entity), cid));
@@ -48,13 +42,9 @@ export default class Table {
         return;
     }
 
-    public async update(entity: Queriable<any>) {
+    public async update(entity: Queriable<any>, cid) {
         const promises = [];
-        entity.queryPlanner = null
-        const log = await entity.history();
-        const entry = await log.append(entity);
 
-        const cid = entry.hash;
         for (const key in this.indexes) {
             const index = this.getIndex(key);
 

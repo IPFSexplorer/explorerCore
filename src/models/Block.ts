@@ -1,4 +1,3 @@
-import Transaction from "./Transaction";
 import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Index from "../database/DAL/decorators/index";
 import Queriable from "../database/DAL/query/queriable";
@@ -9,7 +8,6 @@ export default class Block extends Queriable<Block> {
     previousBlockHash: string;
     nextBlockHash: string;
     @Index() height: number;
-    confirmations: number;
     size: number;
     @Index() time: number;
     version: number;
@@ -17,26 +15,23 @@ export default class Block extends Queriable<Block> {
     nonce: string;
     bits: string;
     difficulty: string;
-    Transactions: { [hash: string]: Transaction } = {};
 
     constructor(init?: Partial<Block>) {
         super(init);
     }
     static fromBlockbook(b: BlockbookBlock) {
+        delete b.txs;
+        delete b.page;
+        delete b.totalPages;
+        delete b.itemsOnPage;
+        delete b.confirmations;
+
         const block = new Block(b);
-        for (const tx of b.txs) {
-            block.Transactions[tx.txid] = Transaction.fromBlockbook(tx);
-        }
         return block;
     }
 
     public async save(): Promise<void> {
-        const tasks: Promise<void>[] = [];
-        for (const txid in this.Transactions) {
-            tasks.push(this.Transactions[txid].save());
-        }
-
-        await Promise.all(tasks);
         await super.save();
+        console.log("block " + this.height + " parsed");
     }
 }

@@ -8,7 +8,7 @@ import { Guid } from "guid-typescript";
 
 export async function randomPortsConfigAsync() {
     return {
-        repo: "dist/" + Guid.create().toString(),
+        repo: "feeder",
         config: {
             Addresses: {
                 Swarm: [

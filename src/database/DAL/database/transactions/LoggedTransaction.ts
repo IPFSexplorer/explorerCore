@@ -51,8 +51,8 @@ export default class LoggedTransaction implements ITransaction {
             switch (this.operation) {
                 case DbOperation.Create:
                     await database
-                        .getTableByEntity(this.data as Queriable<any>)
-                        .insert(this.data as Queriable<any>, database.identity);
+                        .getTableByEntity(this.data.entity as Queriable<any>)
+                        .insert(this.data.entity as Queriable<any>, this.data.cid);
                     break;
 
                 case DbOperation.Delete:
@@ -60,7 +60,9 @@ export default class LoggedTransaction implements ITransaction {
                     break;
 
                 case DbOperation.Update:
-                    await database.getTableByEntity(this.data as Queriable<any>).update(this.data as Queriable<any>);
+                    await database
+                        .getTableByEntity(this.data.entity as Queriable<any>)
+                        .update(this.data.entity as Queriable<any>, this.data.cid);
                     break;
 
                 default:

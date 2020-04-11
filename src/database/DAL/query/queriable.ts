@@ -21,37 +21,41 @@ export default class Queriable<T> extends BaseQuery<T> {
 
     public where(propertyNameOrNestedQuery): PropertyCondition {
         if (typeof propertyNameOrNestedQuery === "string") {
-            const whereCondition = new PropertyCondition(
-                propertyNameOrNestedQuery,
-                this.queryPlanner,
-            );
+            const whereCondition = new PropertyCondition(propertyNameOrNestedQuery, this.queryPlanner);
             this.queryPlanner.addAndCondition(whereCondition);
             return whereCondition;
         }
     }
 
     public async find(primaryKey: any): Promise<T> {
-        return await (await this.where(IndexMap.getPrimary(this))
-            .equal(primaryKey)
-            .first()) as T;
+        return (await await this.where(IndexMap.getPrimary(this)).equal(primaryKey).first()) as T;
     }
 
     public async history(): Promise<Log> {
-        return await Log.fromEntryHash(Database.selectedDatabase.identity, this.entryHash)
+        return await Log.fromEntryHash(Database.selectedDatabase.identity, this.entryHash);
     }
 
     public async save(): Promise<void> {
-        this.queryPlanner = null
-        this.entryHash = await Database.selectedDatabase.create(this) as string;
+        this.queryPlanner = null;
+        const log = new Log(Database.selectedDatabase.identity, {
+            logId: IndexMap.getIndexes(this).indexes[IndexMap.getIndexes(this).primary].keyGetter(this),
+        });
+        const entry = await log.append(this);
+        const cid = entry.hash;
+        this.entryHash = (await Database.selectedDatabase.create(this, cid)) as string;
     }
 
     public async update(): Promise<void> {
-        this.queryPlanner = null
-        this.entryHash = await Database.selectedDatabase.update(this) as string;;
+        this.queryPlanner = null;
+        const log = await this.history();
+        const entry = await log.append(this);
+
+        const cid = entry.hash;
+        this.entryHash = (await Database.selectedDatabase.update(this, cid)) as string;
     }
 
     public async delete(): Promise<void> {
         await Database.selectedDatabase.delete(this);
-        this.entryHash = null
+        this.entryHash = null;
     }
 }

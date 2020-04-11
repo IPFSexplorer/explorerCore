@@ -78,10 +78,10 @@ export default class DatabaseInstance {
         });
     }
 
-    public async create(entity: Queriable<any>) {
+    public async create(entity: Queriable<any>, cid) {
         const tx = new LoggedTransaction({
             operation: DbOperation.Create,
-            data: entity,
+            data: { entity, cid },
         });
         return await this.processTransaction(tx);
     }
@@ -91,10 +91,10 @@ export default class DatabaseInstance {
         return await this.processTransaction(tx);
     }
 
-    public async update(entity: Queriable<any>) {
+    public async update(entity: Queriable<any>, cid) {
         const tx = new LoggedTransaction({
             operation: DbOperation.Update,
-            data: entity,
+            data: { entity, cid },
         });
         return await this.processTransaction(tx);
     }
@@ -162,20 +162,20 @@ export default class DatabaseInstance {
     public async syncLog(hash: string) {
         if (this._dbHash === hash) {
             logger.info("already up to date DB");
-            return
+            return;
         }
 
         await this.lock(async () => {
-            console.log("start to sync")
+            console.log("start to sync");
             try {
                 const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
                 await this.log.merge(dbLog);
-                this._dbHash = hash
+                this._dbHash = hash;
             } catch (e) {
                 console.log(e);
                 logger.error(e.toString());
             }
-            console.log("syn finish")
+            console.log("syn finish");
         });
 
         return;

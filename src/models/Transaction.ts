@@ -1,7 +1,7 @@
-import Address from "./Address";
 import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Queriable from "../database/DAL/query/queriable";
 import "./types";
+import InputsOutputs, { spendingType } from "./InputsOutputs";
 
 export default class Transaction extends Queriable<Transaction> {
     @PrimaryKey() txid: string;
@@ -32,22 +32,17 @@ export default class Transaction extends Queriable<Transaction> {
     public async save(): Promise<void> {
         const tasks: Promise<void>[] = [];
 
-        async function findOrCreateAddress(addr: string) {
-            let a = await new Address().find(addr);
-            if (!a) {
-                a = new Address({ address: addr });
-                await a.save();
-            }
-            return a;
-        }
-
         for (const vin of this.vin) {
             if (vin.isAddress) {
                 for (const addr of vin.addresses) {
                     tasks.push(
-                        (async () => {
-                            await (await findOrCreateAddress(addr)).addInput(this, vin);
-                        })(),
+                        new InputsOutputs({
+                            address: addr,
+                            amount: parseInt(vin.value),
+                            connectedTx: vin.txid,
+                            transaction: this.txid,
+                            type: spendingType.input,
+                        }).save(),
                     );
                 }
             }
@@ -57,15 +52,21 @@ export default class Transaction extends Queriable<Transaction> {
             if (vout.isAddress) {
                 for (const addr of vout.addresses) {
                     tasks.push(
-                        (async () => {
-                            await (await findOrCreateAddress(addr)).addOutput(this, vout);
-                        })(),
+                        new InputsOutputs({
+                            address: addr,
+                            amount: parseInt(vout.value),
+                            connectedTx: vout.spentTxId,
+                            transaction: this.txid,
+                            type: spendingType.output,
+                        }).save(),
                     );
                 }
             }
         }
 
+        tasks.push(super.save());
+
         await Promise.all(tasks);
-        await super.save();
+        console.log("transaction in block " + this.blockHeight + " saved");
     }
 }
