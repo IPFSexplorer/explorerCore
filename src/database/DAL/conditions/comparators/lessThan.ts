@@ -1,5 +1,5 @@
 import IComparator from "./IComparator";
-import BTree from "../../../BTree/btree";
+import BTree from "../../../BTree/Btree";
 import { Filter } from "../../query/types";
 import DatabaseInstance from "../../database/databaseInstance";
 import Database from "../../database/databaseStore";
