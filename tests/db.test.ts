@@ -1,7 +1,3 @@
-import "reflect-metadata";
-
-import ipfsBtreeNodeChildren from "../src/database/BTree/children/ipfsChildren";
-import { container } from "tsyringe";
 import Queriable from "../src/database/DAL/query/queriable";
 import PrimaryKey from "../src/database/DAL/decorators/primaryKey";
 import Index from "../src/database/DAL/decorators/index";
@@ -11,14 +7,15 @@ import { randomPortsConfigAsync } from "../src/ipfs/ipfsDefaultConfig";
 import { DEFAULT_COMPARATOR } from "../src/database/BTree/BTree";
 import DatabaseInstance from "../src/database/DAL/database/databaseInstance";
 import IdentityProvider from "orbit-db-identity-provider";
-import { delay } from "../src/common";
+import { delay, TimeMeaseure } from "../src/common";
 import ForeignKey from "../src/database/DAL/foreignKey";
+import logger from "../src/logger";
 
 class User extends Queriable<User> {
     @PrimaryKey()
     name: string;
 
-    @Index()
+    @Index(undefined, undefined, 3)
     age: number;
 
     toString() {
@@ -36,10 +33,15 @@ class Numberr extends Queriable<Numberr> {
 
 describe("Btree", () => {
     beforeAll(async () => {
-        IPFSconnector.setConfig(await randomPortsConfigAsync());
-        container.register("BtreeNodeChildren", {
-            useClass: ipfsBtreeNodeChildren,
+        IPFSconnector.setConfig({
+            ...(await randomPortsConfigAsync()),
+            repo: "C:\\DP\\benchmarks",
         });
+    });
+    it("time measure", () => {
+        const tm = TimeMeaseure.start("test");
+        console.log(tm.stop());
+        console.log("" + tm.stop());
     });
 
     it("refactor test", async () => {
@@ -50,21 +52,26 @@ describe("Btree", () => {
         Database.connect("testDB", identity);
         await Database.use("testDB").execute(async (db1: DatabaseInstance) => {
             Database.selectedDatabase.getOrCreateTableByEntity(new User());
-            const tasks = [];
-
-            for (let i = 0; i < 10; i++) {
+            let tasks = [];
+            const tm = TimeMeaseure.start("whole");
+            for (let i = 0; i < 5000; i++) {
                 const u = new User();
                 u.name = "test" + i;
                 u.age = i;
                 tasks.push(u.save());
+                if (tasks.length === 100) {
+                    await Promise.all(tasks);
+                    tasks = [];
+                    console.log("done " + i);
+                }
             }
 
             await Promise.all(tasks);
+            tm.stop();
+            await TimeMeaseure.print();
             const users = await Promise.all(await new User().all());
-            console.log(db1);
-            console.log(users);
         });
-    }, 500000);
+    }, 5000000);
 
     // it('FK test', async () =>
     // {

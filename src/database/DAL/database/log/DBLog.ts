@@ -15,6 +15,7 @@ import PubSub from "../../../../ipfs/PubSub";
 import TransactionsBulk from "../transactions/TransactionsBulk";
 import { DBLogPayload } from "./DBLogPayload";
 import { EventEmitter } from "events";
+import { TimeMeaseure } from "../../../../common";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -39,7 +40,7 @@ export default class DBLog extends Log {
             sortFn: SortByEntryHash,
             access,
             entries,
-            heads:[],
+            heads: [],
             clock,
             concurrency,
         });
@@ -52,7 +53,7 @@ export default class DBLog extends Log {
         let otherHead: Entry = log.head;
         const rollbackOperations = new TransactionsBulk();
 
-        console.log("start migrate")
+        console.log("start migrate");
         if (!thisHead) {
             await this.migrate(log, rollbackOperations);
             return;
@@ -60,53 +61,31 @@ export default class DBLog extends Log {
 
         while (thisHead.clock.time > otherHead.clock.time) {
             if (thisHead.identity.id === this.identity.id)
-                rollbackOperations.merge(
-                    ((thisHead.payload as DBLogPayload) as DBLogPayload)
-                        .transaction,
-                );
-            thisHead = await this.get(
-                ((thisHead.payload as DBLogPayload) as DBLogPayload)
-                    .parent,
-            );
+                rollbackOperations.merge(((thisHead.payload as DBLogPayload) as DBLogPayload).transaction);
+            thisHead = await this.get(((thisHead.payload as DBLogPayload) as DBLogPayload).parent);
         }
 
         while (otherHead.clock.time > thisHead.clock.time)
-            otherHead = await log.get(
-                (otherHead.payload as DBLogPayload).parent,
-            );
+            otherHead = await log.get((otherHead.payload as DBLogPayload).parent);
 
         // now, this.Head and otherHead should equal
-        while (
-            (thisHead.payload as DBLogPayload).parent !=
-            (otherHead.payload as DBLogPayload).parent
-        ) {
+        while ((thisHead.payload as DBLogPayload).parent != (otherHead.payload as DBLogPayload).parent) {
             if (thisHead.identity.id === this.identity.id)
-                rollbackOperations.merge(
-                    (thisHead.payload as DBLogPayload).transaction,
-                );
-            otherHead = await log.get(
-                (otherHead.payload as DBLogPayload).parent,
-            );
-            thisHead = await this.get(
-                (thisHead.payload as DBLogPayload).parent,
-            );
+                rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
+            otherHead = await log.get((otherHead.payload as DBLogPayload).parent);
+            thisHead = await this.get((thisHead.payload as DBLogPayload).parent);
         }
 
         if (otherHead.hash > thisHead.hash) {
             if (thisHead.identity.id === this.identity.id)
-                rollbackOperations.merge(
-                    (thisHead.payload as DBLogPayload).transaction,
-                );
+                rollbackOperations.merge((thisHead.payload as DBLogPayload).transaction);
             await this.migrate(log, rollbackOperations);
         } else {
             await this.join(log);
             if (this.head.clock.time < log.head.clock.time) {
                 this.head = log.head;
             }
-            this._clock = new LamportClock(
-                this.clock.id,
-                this.head.clock.time,
-            );
+            this._clock = new LamportClock(this.clock.id, this.head.clock.time);
         }
     }
 
@@ -120,25 +99,14 @@ export default class DBLog extends Log {
         return res;
     }
 
-    private async migrate(
-        log: DBLog,
-        rollbackOperations: TransactionsBulk,
-    ) {
-        await Database.databaseByName(this.id).fromMultihash(
-            (log.head.payload as DBLogPayload).database,
-        );
+    private async migrate(log: DBLog, rollbackOperations: TransactionsBulk) {
+        await Database.databaseByName(this.id).fromMultihash((log.head.payload as DBLogPayload).database);
         if (rollbackOperations.length > 0)
-            Database.databaseByName(this.id).processTransaction(
-                rollbackOperations,
-                true,
-            );
+            Database.databaseByName(this.id).processTransaction(rollbackOperations, true);
         await this.join(log);
         this.head = log.head;
-        this._length = log.length
-        this._clock = new LamportClock(
-            this.clock.id,
-            this.head.clock.time,
-        );
+        this._length = log.length;
+        this._clock = new LamportClock(this.clock.id, this.head.clock.time);
     }
 
     public toJSON() {
@@ -148,13 +116,11 @@ export default class DBLog extends Log {
         };
     }
 
-    async append(
-        data: any,
-        pointerCount = 1,
-        pin = false,
-    ): Promise<Entry> {
+    async append(data: any, pointerCount = 1, pin = false): Promise<Entry> {
+        const timeMeaseure = TimeMeaseure.start("DBlog append");
         const entry = await super.append(data, pointerCount, pin);
         this.head = entry;
+        timeMeaseure.stop();
         return entry;
     }
 
@@ -173,12 +139,7 @@ export default class DBLog extends Log {
         } = {},
     ) {
         // TODO: need to verify the entries with 'key'
-        const {
-            logId,
-            entries,
-            heads,
-            head,
-        } = await LogIO.fromMultihash(hash, {
+        const { logId, entries, heads, head } = await LogIO.fromMultihash(hash, {
             length,
             exclude,
             timeout,

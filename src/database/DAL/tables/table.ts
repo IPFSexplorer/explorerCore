@@ -6,6 +6,7 @@ import Queriable from "../query/queriable";
 import DAG from "../../../ipfs/DAG";
 import Log from "../../log/log";
 import DatabaseInstance from "../database/databaseInstance";
+import { TimeMeaseure } from "../../../common";
 
 export default class Table {
     @Serialize() public name: string;
@@ -19,6 +20,7 @@ export default class Table {
     }
 
     public async insert(entity: Queriable<any>, cid) {
+        const timeMeaseure = TimeMeaseure.start("insert");
         const promises = [];
 
         for (const key in this.indexes) {
@@ -27,6 +29,7 @@ export default class Table {
         }
 
         await Promise.all(promises);
+        timeMeaseure.stop();
         return cid;
     }
 
