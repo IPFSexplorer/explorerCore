@@ -22,6 +22,7 @@ import IndexMap from "../indexMap";
 import DAG from "../../../ipfs/DAG";
 import ReadTransaction from "./transactions/ReadTransaction";
 import logger from "../../../logger";
+import { DbOptions, DbSyncStrategy } from "./DbConnectOptions";
 
 export default class DatabaseInstance {
     @SerializeAnObjectOf(Table)
@@ -51,6 +52,7 @@ export default class DatabaseInstance {
     accessController: DBAccessController;
     private _lock: any;
     private _dbHash: string;
+    public options: DbOptions
 
     constructor(init?: Partial<DatabaseInstance>) {
         Object.assign(this, init);
@@ -161,21 +163,30 @@ export default class DatabaseInstance {
 
     public async syncLog(hash: string) {
         if (this._dbHash === hash) {
-            logger.info("already up to date DB");
             return;
         }
 
         await this.lock(async () => {
-            console.log("start to sync");
-            try {
-                const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
-                await this.log.merge(dbLog);
-                this._dbHash = hash;
-            } catch (e) {
-                console.log(e);
-                logger.error(e.toString());
+            switch (this.options.syncStrategy) {
+                case DbSyncStrategy.migrate:
+                    try {
+                        const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
+                        await this.log.merge(dbLog);
+                        this._dbHash = hash;
+                    } catch (e) {
+                        console.log(e);
+                        logger.error(e.toString());
+                    }
+                    break;
+                case DbSyncStrategy.replace:
+                    const tables = await DAG.GetAsync(hash + "/head/payload/database")
+                    this.tables = {};
+                    console.log(tables)
+
+                    Object.keys(tables).forEach((k) => (this.tables[k] = inflate(Table, tables[k])));
+                default:
+                    break;
             }
-            console.log("syn finish");
         });
 
         return;
