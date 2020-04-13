@@ -117,10 +117,10 @@ export default class DBLog extends Log {
     }
 
     async append(data: any, pointerCount = 1, pin = false): Promise<Entry> {
-        const timeMeaseure = TimeMeaseure.start("DBlog append");
+        //const timeMeaseure = TimeMeaseure.start("DBlog append");
         const entry = await super.append(data, pointerCount, pin);
         this.head = entry;
-        timeMeaseure.stop();
+        //timeMeaseure.stop();
         return entry;
     }
 

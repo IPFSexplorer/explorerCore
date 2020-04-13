@@ -24,7 +24,6 @@ export default class LogIO {
     static async toMultihash(log: Log, { format = undefined } = {}) {
         if (!isDefined(log)) throw LogNotDefinedError();
         if (!isDefined(format)) format = "dag-cbor";
-        if ((await log.getValues()).length < 1) throw new Error(`Can't serialize an empty log`);
 
         return write(format, log.toJSON(), { links: IPLD_LINKS });
     }

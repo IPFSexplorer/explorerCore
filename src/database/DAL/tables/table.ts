@@ -20,7 +20,7 @@ export default class Table {
     }
 
     public async insert(entity: Queriable<any>, cid) {
-        const timeMeaseure = TimeMeaseure.start("insert");
+        //const timeMeaseure = TimeMeaseure.start("insert");
         const promises = [];
 
         for (const key in this.indexes) {
@@ -29,7 +29,7 @@ export default class Table {
         }
 
         await Promise.all(promises);
-        timeMeaseure.stop();
+        //timeMeaseure.stop();
         return cid;
     }
 
