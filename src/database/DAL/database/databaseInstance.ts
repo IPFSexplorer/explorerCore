@@ -51,8 +51,8 @@ export default class DatabaseInstance {
     pubSubListener: PubSubListener;
     accessController: DBAccessController;
     private _lock: any;
-    private _dbHash: string;
-    public options: DbOptions
+    public dbHash: string;
+    public options: DbOptions;
 
     constructor(init?: Partial<DatabaseInstance>) {
         Object.assign(this, init);
@@ -144,7 +144,8 @@ export default class DatabaseInstance {
     public async toMultihash() {
         const res = {};
         Object.keys(this.tables).forEach((k) => (res[k] = deflate(this.tables[k])));
-        return await DAG.PutAsync(res);
+        this.dbHash = await DAG.PutAsync(res);
+        return this.dbHash;
     }
 
     public async fromMultihash(cid) {
@@ -162,7 +163,7 @@ export default class DatabaseInstance {
     }
 
     public async syncLog(hash: string) {
-        if (this._dbHash === hash) {
+        if (this.dbHash === hash) {
             return;
         }
 
@@ -172,16 +173,16 @@ export default class DatabaseInstance {
                     try {
                         const dbLog = await DBLog.fromMultihash(this.identity, this.databaseName, hash);
                         await this.log.merge(dbLog);
-                        this._dbHash = hash;
+                        this.dbHash = hash;
                     } catch (e) {
                         console.log(e);
                         logger.error(e.toString());
                     }
                     break;
                 case DbSyncStrategy.replace:
-                    const tables = await DAG.GetAsync(hash + "/head/payload/database")
+                    const tables = await DAG.GetAsync(hash + "/head/payload/database");
                     this.tables = {};
-                    console.log(tables)
+                    console.log(tables);
 
                     Object.keys(tables).forEach((k) => (this.tables[k] = inflate(Table, tables[k])));
                 default:
