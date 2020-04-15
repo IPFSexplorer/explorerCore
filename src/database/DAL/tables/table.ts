@@ -28,9 +28,9 @@ export default class Table {
             const key = index.keyGetter(entity);
 
             if (Array.isArray(key)) {
-                promises.push(index.insert(key, cid));
-            } else {
                 promises.push(index.insertArray(key, cid));
+            } else {
+                promises.push(index.insert(key, cid));
             }
         }
 

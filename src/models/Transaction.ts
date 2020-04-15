@@ -22,7 +22,7 @@ export default class Transaction extends Queriable<Transaction> {
     tokenTransfers: TokenTransfer[];
     ethereumSpecific: EthereumSpecific;
 
-    @Index(undefined, (tx: BlockbookTx) => {
+    @Index(undefined, (tx: BlockbookTx) => 
         [
             ...tx.vin
                 .filter((vin) => vin.isAddress)
@@ -32,8 +32,8 @@ export default class Transaction extends Queriable<Transaction> {
                 .filter((vout) => vout.isAddress)
                 .map((vout) => vout.addresses)
                 .reduce((acc, curr) => acc.concat(curr), []),
-        ];
-    })
+        ]
+    )
     address: any;
 
     constructor(init?: Partial<Transaction>) {
