@@ -1,7 +1,6 @@
 import PrimaryKey from "../database/DAL/decorators/primaryKey";
 import Queriable from "../database/DAL/query/queriable";
 import "./types";
-import InputsOutputs, { spendingType } from "./InputsOutputs";
 import Index from "../database/DAL/decorators";
 
 export default class Transaction extends Queriable<Transaction> {
@@ -23,6 +22,20 @@ export default class Transaction extends Queriable<Transaction> {
     tokenTransfers: TokenTransfer[];
     ethereumSpecific: EthereumSpecific;
 
+    @Index(undefined, (tx: BlockbookTx) => {
+        [
+            ...tx.vin
+                .filter((vin) => vin.isAddress)
+                .map((vin) => vin.addresses)
+                .reduce((acc, curr) => acc.concat(curr), []),
+            ...tx.vout
+                .filter((vout) => vout.isAddress)
+                .map((vout) => vout.addresses)
+                .reduce((acc, curr) => acc.concat(curr), []),
+        ];
+    })
+    address: any;
+
     constructor(init?: Partial<Transaction>) {
         super(init);
     }
@@ -32,38 +45,6 @@ export default class Transaction extends Queriable<Transaction> {
 
     public async save(): Promise<void> {
         const tasks: Promise<void>[] = [];
-
-        for (const vin of this.vin) {
-            if (vin.isAddress) {
-                for (const addr of vin.addresses) {
-                    tasks.push(
-                        new InputsOutputs({
-                            address: addr,
-                            amount: parseInt(vin.value),
-                            connectedTx: vin.txid,
-                            transaction: this.txid,
-                            type: spendingType.input,
-                        }).save(),
-                    );
-                }
-            }
-        }
-
-        for (const vout of this.vout) {
-            if (vout.isAddress) {
-                for (const addr of vout.addresses) {
-                    tasks.push(
-                        new InputsOutputs({
-                            address: addr,
-                            amount: parseInt(vout.value),
-                            connectedTx: vout.spentTxId,
-                            transaction: this.txid,
-                            type: spendingType.output,
-                        }).save(),
-                    );
-                }
-            }
-        }
 
         tasks.push(super.save());
 

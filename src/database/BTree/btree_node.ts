@@ -58,7 +58,8 @@ export default class BTreeNode<Key, Value> {
             // traverse the subtree rooted with child C[i].
             if (!this.leaf)
                 yield* await (await this.children.getChild(i)).generatorTraverse();
-            yield data[i];
+            
+            if (data[i]) yield data[i];
         }
 
         // Print the subtree rooted with last child
@@ -105,6 +106,7 @@ export default class BTreeNode<Key, Value> {
                     max,
                     comparator
                 );
+            if(data[i - 1])
             yield data[i - 1];
         }
 
@@ -169,6 +171,7 @@ export default class BTreeNode<Key, Value> {
                     min,
                     comparator
                 );
+            if (data[i])
             yield data[i];
         }
 
@@ -236,6 +239,8 @@ export default class BTreeNode<Key, Value> {
                     max,
                     comparator
                 );
+            
+            if (data[i])
             yield data[i];
         }
 

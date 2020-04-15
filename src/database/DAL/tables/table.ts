@@ -23,9 +23,15 @@ export default class Table {
         //const timeMeaseure = TimeMeaseure.start("insert");
         const promises = [];
 
-        for (const key in this.indexes) {
-            const index = this.getIndex(key);
-            promises.push(index.insert(index.keyGetter(entity), cid));
+        for (const property in this.indexes) {
+            const index = this.getIndex(property);
+            const key = index.keyGetter(entity);
+
+            if (Array.isArray(key)) {
+                promises.push(index.insert(key, cid));
+            } else {
+                promises.push(index.insertArray(key, cid));
+            }
         }
 
         await Promise.all(promises);
