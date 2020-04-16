@@ -1,6 +1,7 @@
 import Clock from "./lamport-clock";
 import { isDefined } from "./utils/is-defined";
 import LamportClock from "./lamport-clock";
+import stringify from "json-stringify-deterministic";
 import { read, write } from "./io";
 const IpfsNotDefinedError = () => new Error("Ipfs instance not defined");
 export const IPLD_LINKS = ["next", "refs"];
@@ -97,7 +98,7 @@ export default class Entry {
      * @return {Buffer} The buffer
      */
     static toBuffer(entry) {
-        const stringifiedEntry = entry.v === 0 ? JSON.stringify(entry) : new Error("q"); // : stringify(entry);
+        const stringifiedEntry = entry.v === 0 ? JSON.stringify(entry) : stringify(entry);
         return Buffer.from(stringifiedEntry);
     }
 
