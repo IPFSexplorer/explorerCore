@@ -1,43 +1,40 @@
+import Entry from "./entry";
 import pMap from "p-map";
 import pDoWhilst from "p-do-whilst";
-import Entry from "./entry";
 
-const hasItems = arr => arr && arr.length > 0;
+const hasItems = (arr) => arr && arr.length > 0;
 
 export default class EntryIO {
     // Fetch log graphs in parallel
-    static async fetchParallel(
-        hashes,
-        { length, exclude = [], timeout, concurrency, onProgressCallback }
-    ) {
-        const fetchOne = async hash =>
+    static async fetchParallel(hashes, { length, exclude = [], timeout, concurrency, onProgressCallback }) {
+        const fetchOne = async (hash) =>
             EntryIO.fetchAll(hash, {
                 length,
                 exclude,
                 timeout,
                 onProgressCallback,
-                concurrency
+                concurrency,
             });
         const concatArrays = (arr1, arr2) => arr1.concat(arr2);
-        const flatten = arr => arr.reduce(concatArrays, []);
+        const flatten = (arr) => arr.reduce(concatArrays, []);
         const res = await pMap(hashes, fetchOne, {
-            concurrency: Math.max(concurrency || hashes.length, 1)
+            concurrency: Math.max(concurrency || hashes.length, 1),
         });
         return flatten(res);
     }
 
     /**
-   * Fetch log entries
-   *
-   * @param {IPFS} [ipfs] An IPFS instance
-   * @param {string} [hash] Multihash of the entry to fetch
-   * @param {string} [parent] Parent of the node to be fetched
-   * @param {Object} [all] Entries to skip
-   * @param {Number} [amount=-1] How many entries to fetch
-   * @param {Number} [depth=0] Current depth of the recursion
-   * @param {function(hash, entry, parent, depth)} onProgressCallback
-   * @returns {Promise<Array<Entry>>}
-   */
+     * Fetch log entries
+     *
+     * @param {IPFS} [ipfs] An IPFS instance
+     * @param {string} [hash] Multihash of the entry to fetch
+     * @param {string} [parent] Parent of the node to be fetched
+     * @param {Object} [all] Entries to skip
+     * @param {Number} [amount=-1] How many entries to fetch
+     * @param {Number} [depth=0] Current depth of the recursion
+     * @param {function(hash, entry, parent, depth)} onProgressCallback
+     * @returns {Promise<Array<Entry>>}
+     */
     static async fetchAll(
         hashes,
         {
@@ -47,22 +44,19 @@ export default class EntryIO {
             onProgressCallback = undefined,
             onStartProgressCallback = undefined,
             concurrency = 32,
-            delay = 0
-        } = {}
+            delay = 0,
+        } = {},
     ) {
         let result = [];
         let cache = {};
         let loadingCache = {};
-        let loadingQueue = Array.isArray(hashes)
-            ? { 0: hashes.slice() }
-            : { 0: [hashes] };
+        let loadingQueue = Array.isArray(hashes) ? { 0: hashes.slice() } : { 0: [hashes] };
         let running = 0; // keep track of how many entries are being fetched at any time
         let maxClock = 0; // keep track of the latest clock time during load
         let minClock = 0; // keep track of the minimum clock time during load
 
         // Does the loading queue have more to process?
-        const loadingQueueHasMore = () =>
-            Object.values(loadingQueue).find(hasItems) !== undefined;
+        const loadingQueueHasMore = () => Object.values(loadingQueue).find(hasItems) !== undefined;
 
         // Add a multihash to the loading queue
         const addToLoadingQueue = (e, idx) => {
@@ -92,12 +86,12 @@ export default class EntryIO {
         };
 
         // Add entries that we don't need to fetch to the "cache"
-        const addToExcludeCache = e => {
+        const addToExcludeCache = (e) => {
             cache[e.hash] = true;
         };
 
         // Fetch one entry and add it to the results
-        const fetchEntry = async hash => {
+        const fetchEntry = async (hash) => {
             if (!hash || cache[hash]) {
                 return;
             }
@@ -108,26 +102,22 @@ export default class EntryIO {
                 const timer =
                     timeout && timeout > 0
                         ? setTimeout(() => {
-                            console.warn(
-                                `Warning: Couldn't fetch entry '${hash}', request timed out (${timeout}ms)`
-                            );
-                            resolve();
-                        }, timeout)
+                              console.warn(`Warning: Couldn't fetch entry '${hash}', request timed out (${timeout}ms)`);
+                              resolve();
+                          }, timeout)
                         : null;
 
-                const addToResults = entry => {
+                const addToResults = (entry) => {
                     if (Entry.isEntry(entry)) {
                         const ts = entry.clock.time;
 
                         // Update min/max clocks
                         maxClock = Math.max(maxClock, ts);
                         minClock =
-                            result.length > 0
-                                ? Math.min(result[result.length - 1].clock.time, minClock)
-                                : maxClock;
+                            result.length > 0 ? Math.min(result[result.length - 1].clock.time, minClock) : maxClock;
 
                         const isLater = result.length >= length && ts >= minClock;
-                        const calculateIndex = idx => maxClock - ts + (idx + 1) * idx;
+                        const calculateIndex = (idx) => maxClock - ts + (idx + 1) * idx;
 
                         // Add the entry to the results if
                         // 1) we're fetching all entries
@@ -150,19 +140,11 @@ export default class EntryIO {
                             // If we're fetching entries up to certain length,
                             // fetch the next if result is filled up, to make sure we "check"
                             // the next entry if its clock is later than what we have in the result
-                            if (
-                                result.length < length ||
-                                ts > minClock ||
-                                (ts === minClock && !cache[entry.hash])
-                            ) {
-                                entry.next.forEach(e =>
-                                    addToLoadingQueue(e, calculateIndex(0))
-                                );
+                            if (result.length < length || ts > minClock || (ts === minClock && !cache[entry.hash])) {
+                                entry.next.forEach((e) => addToLoadingQueue(e, calculateIndex(0)));
                             }
                             if (entry.refs && result.length + entry.refs.length <= length) {
-                                entry.refs.forEach((e, i) =>
-                                    addToLoadingQueue(e, calculateIndex(i))
-                                );
+                                entry.refs.forEach((e, i) => addToLoadingQueue(e, calculateIndex(i)));
                             }
                         }
                     }
@@ -181,8 +163,7 @@ export default class EntryIO {
 
                     // Simulate network latency (for debugging purposes)
                     if (delay > 0) {
-                        const sleep = (ms = 0) =>
-                            new Promise(resolve => setTimeout(resolve, ms));
+                        const sleep = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
                         await sleep(delay);
                     }
                     resolve();

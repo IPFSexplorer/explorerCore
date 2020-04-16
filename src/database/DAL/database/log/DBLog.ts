@@ -1,21 +1,11 @@
 import Log from "../../../log/log";
 import LamportClock from "../../../log/lamport-clock";
-import DatabaseInstance from "../databaseInstance";
 import { SortByEntryHash } from "../../../log/log-sorting";
 import Entry from "../../../log/entry";
-import { runInThisContext } from "vm";
-import { Guid } from "guid-typescript";
 import LogIO from "../../../log/log-io";
-import Queue from "queue";
-import LoggedTransaction from "../transactions/LoggedTransaction";
-import { DbOperation } from "../DBOperations";
-import Queriable from "../../query/queriable";
 import Database from "../databaseStore";
-import PubSub from "../../../../ipfs/PubSub";
 import TransactionsBulk from "../transactions/TransactionsBulk";
 import { DBLogPayload } from "./DBLogPayload";
-import { EventEmitter } from "events";
-import { TimeMeaseure } from "../../../../common";
 
 export const DEFAULT_COMPARATOR = (a, b) => a < b;
 
@@ -26,14 +16,7 @@ export default class DBLog extends Log {
     constructor(
         identity,
         dbName,
-        {
-            access = undefined,
-            entries = undefined,
-            heads = undefined,
-            clock = undefined,
-            concurrency = undefined,
-            head = null,
-        } = {},
+        { access = undefined, entries = undefined, clock = undefined, concurrency = undefined, head = null } = {},
     ) {
         super(identity, {
             logId: dbName,
@@ -139,7 +122,7 @@ export default class DBLog extends Log {
         } = {},
     ) {
         // TODO: need to verify the entries with 'key'
-        const { logId, entries, heads, head } = await LogIO.fromMultihash(hash, {
+        const { entries, heads, head } = await LogIO.fromMultihash(hash, {
             length,
             exclude,
             timeout,
@@ -150,7 +133,6 @@ export default class DBLog extends Log {
         return new DBLog(identity, databaseName, {
             access,
             entries,
-            heads,
             head,
         });
     }
