@@ -77,6 +77,7 @@ export default class LoggedTransaction implements ITransaction {
                 database: await database.toMultihash(),
                 parent: database.log.head ? database.log.head.hash : null,
             } as DBLogPayload);
+            database.log.head = entry;
             await database.pubSubListener.publish(
                 new PubSubMessage({
                     type: PubSubMessageType.PublishVersion,
@@ -90,9 +91,9 @@ export default class LoggedTransaction implements ITransaction {
                 transaction: this,
                 parent: database.log.head ? database.log.head.hash : null,
             } as DBLogPayload);
+            database.log.head = entry;
         }
 
-        database.log.head = entry;
         return entry.hash;
 
         //console.log(`Finish: ${this}`);
