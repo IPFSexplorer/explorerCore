@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "async-lock": "^1.2.2",
-        "ipfs": "^0.40",
+        "ipfs": "^0.43",
         "ipld-dag-pb": "^0.18.3",
         "json-stringify-deterministic": "^1.0.1",
         "libp2p-pnet": "^0.1.0",

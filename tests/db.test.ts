@@ -53,8 +53,7 @@ describe("Btree", () => {
         await Database.use("testDB").execute(async (db1: DatabaseInstance) => {
             Database.selectedDatabase.getOrCreateTableByEntity(new User());
             let tasks = [];
-            const tm = TimeMeaseure.start("whole");
-            for (let i = 0; i < 5000; i++) {
+            for (let i = 0; i < 100; i++) {
                 const u = new User();
                 u.name = "test" + i;
                 u.age = i;
@@ -67,8 +66,6 @@ describe("Btree", () => {
             }
 
             await Promise.all(tasks);
-            tm.stop();
-            await TimeMeaseure.print();
             const users = await Promise.all(await new User().all());
         });
     }, 5000000);
