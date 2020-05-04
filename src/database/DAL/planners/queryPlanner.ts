@@ -65,7 +65,7 @@ export default class QueryPlanner {
     }
 
     public async getFirst() {
-        return await (await (await this.resolve())[Symbol.asyncIterator]().next()).value;
+        return (await (await this.resolve())[Symbol.asyncIterator]().next()).value;
     }
 
     public async paginate(perPage: number = 20) {
