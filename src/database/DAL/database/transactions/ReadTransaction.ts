@@ -14,7 +14,7 @@ import { PubSubMessageType } from "../PubSub/MessageType";
 
 export default class ReadTransaction implements ITransaction
 {
-    query: () => Generator;
+    query
 
     constructor(query: () => Generator)
     {
@@ -29,9 +29,9 @@ export default class ReadTransaction implements ITransaction
     async run(database: DatabaseInstance)
     {
 
-        return await database.lock(() =>
+        return await database.lock(async () =>
         {
-            return this.query();
+            return await this.query();
         });
     }
 

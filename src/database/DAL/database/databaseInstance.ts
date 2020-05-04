@@ -158,7 +158,13 @@ export default class DatabaseInstance {
 
     async lock(fn) {
         return await this._lock.acquire(this.databaseName, async (done) => {
-            done(null, await fn());
+            try {
+                done(null, await fn());
+            } catch (e) 
+            {
+                done(e)
+                logger.error(e)
+            }
         });
     }
 
@@ -180,11 +186,17 @@ export default class DatabaseInstance {
                     }
                     break;
                 case DbSyncStrategy.replace:
-                    const tables = await DAG.GetAsync(hash + "/head/payload/database");
-                    this.tables = {};
-                    console.log(tables);
+                    try {
+                        const tables = await DAG.GetAsync(hash + "/head/payload/database");
+                        this.tables = {};
+                        console.log(tables);
 
-                    Object.keys(tables).forEach((k) => (this.tables[k] = inflate(Table, tables[k])));
+                        Object.keys(tables).forEach((k) => (this.tables[k] = inflate(Table, tables[k])));
+                    } catch(e){
+                        console.log(e);
+                        logger.error(e.toString());
+                    }
+                    break;
                 default:
                     break;
             }
